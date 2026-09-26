@@ -3,7 +3,7 @@
 export const CLAIM_WALLET = '3ggRizSixiDPXyHrEzBaZ3Nm8QfFRD1FbrkkYYpxMxkq';
 export const CLAIM_MINT = '6ZdCWrLhmBJmoLCL8reNCBxqJGBxXgQyM2PcDo4kpump';
 export const CLAIM_SOURCE = 'creator reward claim';
-export const PURCHASES_PAUSED = 'Purchases are paused until per-coin 80/20 accounting and burning are connected. Claims remain available.';
+export const PURCHASES_PAUSED = 'Direct wallet-funded purchases are disabled. The reward cycle can spend only verified 80% reward allocations.';
 export function claimAssert(ok, message) {
   if (!ok) throw Object.assign(new Error(message), { status: 422 });
 }

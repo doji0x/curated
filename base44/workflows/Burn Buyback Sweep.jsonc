@@ -5,9 +5,9 @@
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "0 * * * *",
+      "cron_expression": "*/5 * * * *",
       "one_time_date": null,
-      "timezone": "America/Los_Angeles",
+      "timezone": "Etc/UTC",
       "interval_value": null,
       "interval_unit": null,
       "interval_anchor": null,
@@ -28,20 +28,18 @@
         "sweep_rewards": {
           "call": "invoke_backend_function",
           "with": {
-            "function_name": "executeBurnBuyback",
-            "args": {
-              "action": "run"
-            }
+            "function_name": "runBurnRewardCycle",
+            "args": {}
           },
           "then": "end",
           "x-base44": {
-            "title": "Reconcile reward receipts",
-            "description": "Confirm saved transactions without initiating purchases."
+            "title": "Claim, buy and burn verified rewards",
+            "description": "Resume saved work and spend only 80% of finalized Burn reward receipts."
           }
         }
       }
     ]
   },
   "name": "Burn Buyback Sweep",
-  "description": "Hourly receipt reconciliation only. Purchases are disabled during the creator-reward claim rollout."
+  "description": "Every five minutes: claim Burn rewards, buy with the verified 80% allocation, burn purchased tokens, and recover empty-account rent. Requires automationEnabled."
 }

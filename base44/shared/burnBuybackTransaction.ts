@@ -4,7 +4,7 @@ import { ComputeBudgetProgram, TransactionMessage, VersionedTransaction } from '
 import { readLaunchLookupTable, publicLaunchTableLabel } from './launchLookupTable.ts';
 import { gasReserve } from './burnBuybackConfig.ts';
 
-export async function buildBuybackTransaction(ctx, actions, protectReserve = false) {
+export async function buildBuybackTransaction(ctx, actions, protectReserve = false, protection = null) {
   const { connection, wallet, base44 } = ctx;
   const latest = await connection.getLatestBlockhash('confirmed');
   const table = await readLaunchLookupTable(base44, ctx.rpcUrl, publicLaunchTableLabel);
@@ -16,11 +16,19 @@ export async function buildBuybackTransaction(ctx, actions, protectReserve = fal
   const requiredFee = (await connection.getFeeForMessage(message, 'confirmed')).value;
   const payerBalance = await connection.getBalance(wallet.publicKey, 'confirmed');
   if (requiredFee === null || payerBalance < requiredFee) throw new Error('The treasury wallet needs SOL for the transaction fee before claiming. No transaction was sent.');
+  const protectedRewards = BigInt(protection?.protectedLamports || ctx.rewardFloor || '0');
+  const enforceRewards = protection !== null || ctx.rewardFloor !== undefined;
+  if (enforceRewards && BigInt(payerBalance) < protectedRewards + gasReserve + BigInt(requiredFee)) throw new Error('Fund the operating reserve separately. Retained and unspent rewards cannot pay network fees.');
   tx.sign([wallet]);
   const raw = tx.serialize();
   if (raw.length > 1232) throw new Error('Transaction exceeds the size limit; no funds were moved.');
-  const simulation = await connection.simulateTransaction(tx, { commitment: 'confirmed', sigVerify: true, ...(protectReserve ? { accounts: { encoding: 'base64', addresses: [wallet.publicKey.toBase58()] } } : {}) });
+  const simulation = await connection.simulateTransaction(tx, { commitment: 'confirmed', sigVerify: true, ...(protectReserve || enforceRewards ? { accounts: { encoding: 'base64', addresses: [wallet.publicKey.toBase58()] } } : {}) });
   if (simulation.value.err) throw new Error(`Transaction simulation failed; no funds moved: ${JSON.stringify(simulation.value.err)}`);
+  if (enforceRewards) {
+    const remaining = simulation.value.accounts?.[0]?.lamports;
+    const floor = protectedRewards - BigInt(protection?.rewardDebit || '0') + gasReserve;
+    if (!Number.isSafeInteger(remaining) || BigInt(remaining) - BigInt(requiredFee) < floor) throw new Error('Transaction would spend protected reward allocations on fees or rent. Fund the operating reserve.');
+  }
   if (protectReserve) {
     const remaining = simulation.value.accounts?.[0]?.lamports;
     const fee = (await connection.getFeeForMessage(message, 'confirmed')).value;

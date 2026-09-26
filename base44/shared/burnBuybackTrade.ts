@@ -7,7 +7,7 @@ import { burnMint, solMint } from './burnBuybackConfig.ts';
 
 // Use the published IDL to verify account compatibility before changing an
 // SDK exact-output builder to the program's exact-budget variant.
-function exactBudget(instructions, program, programId, originalName, exactName, budget, minimumField) {
+export function exactBudget(instructions, program, programId, originalName, exactName, budget, minimumField) {
   const normalize = value => value.replace(/_/g, '').toLowerCase();
   const original = program.idl.instructions.find(ix => normalize(ix.name) === normalize(originalName));
   const exact = program.idl.instructions.find(ix => normalize(ix.name) === normalize(exactName));
@@ -17,7 +17,7 @@ function exactBudget(instructions, program, programId, originalName, exactName, 
     if (!ix.programId.equals(programId) || !Buffer.from(ix.data.subarray(0, 8)).equals(Buffer.from(original.discriminator))) continue;
     const decoded = program.coder.instruction.decode(ix.data);
     const expected = new BN(ix.data.subarray(8, 16), 'le');
-    const min = expected.muln(90).divn(100);
+    const min = expected.muln(9900).divn(10000);
     if (min.isZero()) throw new Error('Expected token output is too small.');
     ix.data = program.coder.instruction.encode(exact.name, { ...decoded.data, spendableQuoteIn: budget, [minimumField]: min });
     changed = true;

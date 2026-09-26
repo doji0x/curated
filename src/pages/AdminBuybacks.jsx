@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import BuybackSummary from '@/components/buyback/BuybackSummary';
 import BuybackRecords from '@/components/buyback/BuybackRecords';
 import ManualBuybackActions from '@/components/buyback/ManualBuybackActions';
+import RewardCyclePanel from '@/components/buyback/RewardCyclePanel';
 
 export default function AdminBuybacks() {
   const [offset, setOffset] = useState(0);
@@ -35,6 +36,7 @@ export default function AdminBuybacks() {
       {query.data && <><BuybackSummary data={query.data} /><ManualBuybackActions data={query.data} signature={signature}
         onSubmitted={next => { setSignature(next); setOffset(0); }} onRefresh={() => query.refetch()}
         refreshing={query.isFetching || query.isPlaceholderData} statusError={query.isError} updatedAt={query.dataUpdatedAt} />
+        <RewardCyclePanel data={query.data} refreshing={query.isFetching || query.isPlaceholderData} statusError={query.isError} />
         <BuybackRecords rows={query.data.records} offset={offset} onPage={setOffset} loading={query.isFetching || query.isPlaceholderData} /></>}
     </main>
   </div>;

@@ -16,7 +16,7 @@
     },
     "sweptAmount": {
       "type": "string",
-      "description": "Exact SOL buy budget including trading fees, in lamports"
+      "description": "Actual finalized SOL quote spend including trading fees for cycle receipts; legacy records may store a budget, in lamports"
     },
     "buyMint": {
       "type": "string"
@@ -102,11 +102,11 @@
     },
     "messageHash": {
       "type": "string",
-      "description": "SHA-256 of the approved claim transaction message."
+      "description": "SHA-256 of the approved claim or cycle transaction message."
     },
     "rentRefund": {
       "type": "string",
-      "description": "Existing recipient WSOL account rent returned during a direct claim; excluded from rewards."
+      "description": "Account rent returned during a claim or empty-account cleanup; excluded from reward buying power."
     },
     "unwrappedExisting": {
       "type": "string",
@@ -115,6 +115,24 @@
     "totalDistributed": {
       "type": "string",
       "description": "Actual reward vault outflow; can exceed this wallet\u2019s receipt for multiple shareholders."
+    },
+    "cycleVersion": {
+      "type": "number"
+    },
+    "cycleId": {
+      "type": "string"
+    },
+    "cycleStep": {
+      "type": "string"
+    },
+    "epoch": {
+      "type": "string"
+    },
+    "stepPlan": {
+      "type": "object"
+    },
+    "burnedAmount": {
+      "type": "string"
     }
   },
   "required": [

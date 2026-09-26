@@ -1,0 +1,90 @@
+{
+  "name": "BurnRewardCycle",
+  "type": "object",
+  "properties": {
+    "wallet": {
+      "type": "string"
+    },
+    "mint": {
+      "type": "string"
+    },
+    "epoch": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "budget": {
+      "type": "string"
+    },
+    "tokensBought": {
+      "type": "string"
+    },
+    "tokensBurned": {
+      "type": "string"
+    },
+    "spent": {
+      "type": "string"
+    },
+    "buySignature": {
+      "type": "string"
+    },
+    "burnSignature": {
+      "type": "string"
+    },
+    "closeSignature": {
+      "type": "string"
+    },
+    "rentRecovered": {
+      "type": "string"
+    },
+    "cleanupNote": {
+      "type": "string"
+    },
+    "lastError": {
+      "type": "string"
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "completedAt": {
+      "type": "string"
+    },
+    "fundingSignatures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "wallet",
+    "mint",
+    "epoch",
+    "status",
+    "budget",
+    "createdAt"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
