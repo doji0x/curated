@@ -1,0 +1,12 @@
+{
+  "sdk": "@pump-fun/pump-sdk@2.0.0",
+  "versions": {
+    "@coral-xyz/anchor": "0.31.1",
+    "@pump-fun/agent-payments-sdk": "1.0.7",
+    "@pump-fun/pump-swap-sdk": "1.13.0",
+    "@solana/spl-token": "0.4.15",
+    "@solana/web3.js": "1.99.0",
+    "bn.js": "5.2.5",
+    "undici-types": "6.21.0"
+  }
+}
