@@ -12,14 +12,18 @@ export async function settleBuyback(ctx, row, rebroadcast = true) {
     const keys = tx.transaction.message.accountKeys.map(item => item.pubkey.toBase58());
     const sourceIndex = keys.indexOf(row.pumpVault), walletIndex = keys.indexOf(row.wallet);
     if (walletIndex < 0 || (row.collectPump && sourceIndex < 0)) throw new Error('Finalized receipt is missing expected accounts; manual reconciliation required.');
-    const pump = row.collectPump ? BigInt(tx.meta.preBalances[sourceIndex]) - BigInt(row.pumpRent) : 0n;
+    const claimOnly = row.source === 'manual claim';
+    const pump = row.collectPump ? BigInt(tx.meta.preBalances[sourceIndex]) - BigInt(claimOnly ? tx.meta.postBalances[sourceIndex] : row.pumpRent) : 0n;
     const ammIndex = keys.indexOf(row.ammVault);
-    const amm = row.collectAmm ? BigInt(tx.meta.preTokenBalances?.find(item => item.accountIndex === ammIndex)?.uiTokenAmount.amount || '0') : 0n;
+    const preAmm = tx.meta.preTokenBalances?.find(item => item.accountIndex === ammIndex);
+    const postAmm = tx.meta.postTokenBalances?.find(item => item.accountIndex === ammIndex);
+    if (row.collectAmm && !preAmm) throw new Error('Finalized receipt is missing the SOL reward vault; reconciliation required.');
+    const amm = row.collectAmm ? BigInt(preAmm.uiTokenAmount.amount) - (claimOnly ? BigInt(postAmm?.uiTokenAmount.amount || '0') : 0n) : 0n;
     const amounts = list => (list || []).filter(item => item.mint === burnMint && item.owner === row.wallet).reduce((sum, item) => sum + BigInt(item.uiTokenAmount.amount), 0n);
     const coins = amounts(tx.meta.postTokenBalances) - amounts(tx.meta.preTokenBalances);
     const token = tx.meta.postTokenBalances?.find(item => item.mint === burnMint && item.owner === row.wallet);
-    if (pump < 0n || coins <= 0n || !token) throw new Error('Finalized buyback receipt needs manual reconciliation; further buys are blocked.');
-    return db.BuybackRecord.update(row.id, { status: 'confirmed', totalAccrued: String(pump + amm), coinsReceived: String(coins), tokenDecimals: token.uiTokenAmount.decimals, remainingBalance: String(tx.meta.postBalances[walletIndex]), networkFee: String(tx.meta.fee), confirmedAt: new Date().toISOString(), signedTransaction: '', error: '' });
+    if (pump < 0n || amm < 0n || (claimOnly ? pump + amm <= 0n : coins <= 0n || !token)) throw new Error('Finalized receipt needs manual reconciliation; further actions are blocked.');
+    return db.BuybackRecord.update(row.id, { status: 'confirmed', totalAccrued: String(pump + amm), coinsReceived: claimOnly ? '0' : String(coins), tokenDecimals: token?.uiTokenAmount.decimals || 0, remainingBalance: String(tx.meta.postBalances[walletIndex]), networkFee: String(tx.meta.fee), confirmedAt: new Date().toISOString(), signedTransaction: '', error: '' });
   }
   if (status) return row;
   const height = await connection.getBlockHeight('finalized');

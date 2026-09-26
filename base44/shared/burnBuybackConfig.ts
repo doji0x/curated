@@ -10,12 +10,20 @@ export async function getBuybackState(db) {
   return rows[0];
 }
 export async function buybackTotals(db, wallet) {
-  let accrued = 0n, swept = 0n, coins = 0n, fees = 0n;
+  let accrued = 0n, swept = 0n, coins = 0n, fees = 0n, rewardSpent = 0n;
   for (let skip = 0; ; skip += 100) {
     const rows = await db.BuybackRecord.filter({ wallet, status: 'confirmed' }, 'created_date', 100, skip);
-    for (const row of rows) { accrued += BigInt(row.totalAccrued || '0'); swept += BigInt(row.sweptAmount || '0'); coins += BigInt(row.coinsReceived || '0'); fees += BigInt(row.networkFee || '0'); }
+    for (const row of rows) {
+      accrued += BigInt(row.totalAccrued || '0');
+      const spent = BigInt(row.sweptAmount || '0');
+      const available = allocation(accrued) > rewardSpent ? allocation(accrued) - rewardSpent : 0n;
+      // A discretionary wallet buy consumes existing reward carry first, but
+      // never pre-spends future rewards that have not yet been collected.
+      rewardSpent += row.source === 'manual buy' ? (spent < available ? spent : available) : spent;
+      swept += spent; coins += BigInt(row.coinsReceived || '0'); fees += BigInt(row.networkFee || '0');
+    }
     if (rows.length < 100) break;
   }
   const allocated = allocation(accrued);
-  return { accrued: String(accrued), swept: String(swept), coins: String(coins), fees: String(fees), retained: String(accrued - allocated), carry: String(allocated > swept ? allocated - swept : 0n) };
+  return { accrued: String(accrued), swept: String(swept), coins: String(coins), fees: String(fees), retained: String(accrued - allocated), carry: String(allocated > rewardSpent ? allocated - rewardSpent : 0n) };
 }

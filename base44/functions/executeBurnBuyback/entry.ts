@@ -3,7 +3,9 @@ import { secrets } from 'base44:runtime';
 import { Connection, Keypair } from 'npm:@solana/web3.js@1.98.4';
 import { OnlinePumpSdk } from 'npm:@pump-fun/pump-sdk@2.0.0';
 import { parseWallet, assertMainnet } from '../../shared/mintWallet.ts';
-import { burnMint, solMint, getBuybackState, buybackTotals } from '../../shared/burnBuybackConfig.ts';
+import { burnMint, solMint, gasReserve, minimumBuy, getBuybackState, buybackTotals } from '../../shared/burnBuybackConfig.ts';
+import { reconcileBuybackStatus } from '../../shared/burnBuybackLock.ts';
+import { validateManualAmount } from '../../shared/burnBuybackManual.ts';
 import { runBuyback } from '../../shared/burnBuybackRun.ts';
 import { prepareBuyback } from '../../shared/burnBuybackPrepare.ts';
 
@@ -17,7 +19,11 @@ export default async function(req: Request): Promise<Response> {
     if (text.length > 1000) return Response.json({ error: 'Request too large.' }, { status: 413 });
     const body = text ? JSON.parse(text) : {};
     const action = body.action || 'status';
-    if (!['status', 'run', 'preview', 'setEnabled'].includes(action)) return Response.json({ error: 'Invalid action.' }, { status: 400 });
+    if (!['status', 'run', 'preview', 'setEnabled', 'claim', 'buy'].includes(action)) return Response.json({ error: 'Invalid action.' }, { status: 400 });
+    if (action === 'buy') {
+      try { validateManualAmount(body.amount); }
+      catch (error) { return Response.json({ error: error.message }, { status: 400 }); }
+    }
     const db = base44.asServiceRole.entities;
     const state = await getBuybackState(db);
     if (action === 'setEnabled') {
@@ -31,15 +37,17 @@ export default async function(req: Request): Promise<Response> {
     const connection = new Connection(rpcUrl, { commitment: 'confirmed', fetch: (url, options) => fetch(url, { ...options, signal: AbortSignal.timeout(20000) }) });
     const online = new OnlinePumpSdk(connection);
     const ctx = { base44, db, rpcUrl, wallet, connection, online };
-    if (action === 'run') return Response.json(await runBuyback(ctx));
+    if (['run', 'claim', 'buy'].includes(action)) return Response.json(await runBuyback(ctx, action, body.amount));
+    if (action === 'status') await reconcileBuybackStatus(ctx);
     const totals = await buybackTotals(db, wallet.publicKey.toBase58());
     if (action === 'preview') return Response.json(await prepareBuyback(ctx, totals, true));
     const offset = body.offset === undefined ? 0 : body.offset;
     if (!Number.isInteger(offset) || offset < 0 || offset > 100000) return Response.json({ error: 'Invalid page.' }, { status: 400 });
-    const [balances, rows] = await Promise.all([online.getCreatorVaultQuoteBalances(wallet.publicKey), db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58() }, '-created_date', 20, offset)]);
+    const [balances, rows, balance, latestState, pending] = await Promise.all([online.getCreatorVaultQuoteBalances(wallet.publicKey), db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58() }, '-created_date', 20, offset), connection.getBalance(wallet.publicKey, 'confirmed'), getBuybackState(db), db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58(), status: 'pending' }, 'created_date', 1)]);
     const rewards = balances.map(row => ({ mint: row.mint.toBase58(), pumpVault: row.pumpVault.toString(), ammVault: row.ammVault.toString(), total: row.total.toString() }));
     const records = rows.map(({ signedTransaction, ...row }) => row);
-    return Response.json({ burnMint, solMint, wallet: wallet.publicKey.toBase58(), state: { enabled: state.enabled, lastRunAt: state.lastRunAt, lastOutcome: state.lastOutcome, lastError: state.lastError }, totals, unclaimedSol: rewards.find(row => row.mint === solMint)?.total || '0', rewards, records });
+    const available = BigInt(balance) - gasReserve;
+    return Response.json({ burnMint, solMint, wallet: wallet.publicKey.toBase58(), state: { enabled: latestState.enabled, locked: Date.parse(latestState.lockUntil) > Date.now(), lastRunAt: latestState.lastRunAt, lastOutcome: latestState.lastOutcome, lastError: latestState.lastError }, walletBalance: String(balance), availableSol: String(available > 0n ? available : 0n), gasReserve: String(gasReserve), minimumBuy: String(minimumBuy), hasPending: pending.length > 0, totals, unclaimedSol: rewards.find(row => row.mint === solMint)?.total || '0', rewards, records });
   } catch (error) {
     return Response.json({ error: error.message || 'Unable to process buybacks.' }, { status: 500 });
   }
