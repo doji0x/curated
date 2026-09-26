@@ -1,0 +1,35 @@
+name: Treasury policy checks
+on:
+  pull_request:
+    paths: ['src/**', 'base44/**', 'tests/treasury/**', 'package*.json', '.github/workflows/treasury-checks.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  treasury:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ls @pump-fun/pump-sdk @coral-xyz/anchor @pump-fun/agent-payments-sdk @pump-fun/pump-swap-sdk @solana/spl-token @solana/web3.js bn.js undici-types
+      - name: Test actual SDK treasury transactions without network or wallet keys
+        run: node --test tests/treasury/*.test.mjs
+      - if: always()
+        run: npm run build
+      - if: always()
+        run: npm run lint
+      - name: Retain tracked source and installed public packages for offline review
+        if: always()
+        run: |
+          mkdir -p treasury-evidence
+          git archive HEAD src base44 tests package.json package-lock.json docs > treasury-evidence/source.tar
+          tar -czf treasury-evidence/node-modules.tar.gz node_modules
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treasury-test-evidence
+          path: treasury-evidence
+          retention-days: 3
