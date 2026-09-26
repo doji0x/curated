@@ -1,0 +1,60 @@
+{
+  "name": "BurnBuybackState",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string"
+    },
+    "wallet": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "lockUntil": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lockToken": {
+      "type": "string"
+    },
+    "lastRunAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lastOutcome": {
+      "type": "string"
+    },
+    "lastError": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "key",
+    "enabled",
+    "lockUntil"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

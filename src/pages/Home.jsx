@@ -12,6 +12,7 @@ import ValidateBottomBar from '@/components/nav/ValidateBottomBar';
 import PunksHero from '@/components/punks/PunksHero';
 import NormalLaunchHero from '@/components/launch/NormalLaunchHero';
 import ContractAddress from '@/components/ContractAddress';
+import BuybackFeature from '@/components/buyback/BuybackFeature';
 import { Image } from '@/components/ui/image';
 
 export default function Home() {
@@ -48,6 +49,7 @@ export default function Home() {
         <NormalLaunchHero showLaunchLink />
         </div>
         <ContractAddress />
+        <BuybackFeature />
         
         <section className="mt-6 rounded-3xl border border-primary/25 bg-card p-6 text-left sm:p-8" aria-labelledby="metadata-control-heading">
         <p className="font-mono text-[10px] tracking-[0.18em] text-primary">CREATOR CONTROL</p>

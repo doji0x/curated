@@ -1,0 +1,114 @@
+{
+  "name": "BuybackRecord",
+  "type": "object",
+  "properties": {
+    "source": {
+      "type": "string",
+      "default": "creator rewards"
+    },
+    "totalAccrued": {
+      "type": "string",
+      "description": "Verified newly collected rewards in lamports"
+    },
+    "sweptBps": {
+      "type": "number",
+      "default": 8000
+    },
+    "sweptAmount": {
+      "type": "string",
+      "description": "Exact SOL buy budget including trading fees, in lamports"
+    },
+    "buyMint": {
+      "type": "string"
+    },
+    "coinsReceived": {
+      "type": "string"
+    },
+    "tokenDecimals": {
+      "type": "number"
+    },
+    "signature": {
+      "type": "string"
+    },
+    "wallet": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "failed"
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "confirmedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "remainingBalance": {
+      "type": "string"
+    },
+    "networkFee": {
+      "type": "string"
+    },
+    "error": {
+      "type": "string"
+    },
+    "lastValidBlockHeight": {
+      "type": "number"
+    },
+    "signedTransaction": {
+      "type": "string",
+      "description": "Bounded signed transaction for same-signature rebroadcast, cleared after settlement"
+    },
+    "pumpVault": {
+      "type": "string"
+    },
+    "pumpRent": {
+      "type": "string"
+    },
+    "ammVault": {
+      "type": "string"
+    },
+    "collectPump": {
+      "type": "boolean"
+    },
+    "collectAmm": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "source",
+    "wallet",
+    "buyMint",
+    "status",
+    "signature",
+    "createdAt"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -13,6 +13,7 @@ import AdminMints from '@/pages/AdminMints';
 import AdminAstra from '@/pages/AdminAstra';
 
 import AdminLaunchLinks from '@/pages/AdminLaunchLinks';
+import AdminBuybacks from '@/pages/AdminBuybacks';
 import AdminMetadataOverride from '@/pages/AdminMetadataOverride';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -85,6 +86,9 @@ const AuthenticatedApp = () => {
       </Route>
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login?returnTo=%2Fadmin%2Fmetadata" replace />} />}>
         <Route path="/admin/metadata" element={<AdminMetadataOverride />} />
+      </Route>
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login?returnTo=%2Fadmin%2Fbuybacks" replace />} />}>
+        <Route path="/admin/buybacks" element={<AdminBuybacks />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
