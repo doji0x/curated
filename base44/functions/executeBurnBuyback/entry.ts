@@ -19,7 +19,9 @@ export default async function(req: Request): Promise<Response> {
     if (text.length > 1000) return Response.json({ error: 'Request too large.' }, { status: 413 });
     const body = text ? JSON.parse(text) : {};
     const action = body.action || 'status';
-    if (!['status', 'run', 'preview', 'setEnabled', 'claim', 'buy'].includes(action)) return Response.json({ error: 'Invalid action.' }, { status: 400 });
+    if (!['status', 'run', 'preview', 'setEnabled', 'claim', 'recover', 'buy'].includes(action)) return Response.json({ error: 'Invalid action.' }, { status: 400 });
+    const receiptSignature = body.signature || '';
+    if ((receiptSignature && (typeof receiptSignature !== 'string' || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(receiptSignature))) || (action === 'recover' && !receiptSignature)) return Response.json({ error: 'Choose a valid saved transaction signature.' }, { status: 400 });
     if (action === 'buy' || action === 'preview' || (action === 'setEnabled' && body.enabled === true)) return Response.json({ error: PURCHASES_PAUSED }, { status: 409 });
     const db = base44.asServiceRole.entities;
     const state = await getBuybackState(db);
@@ -40,20 +42,23 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ skipped: true, reason: PURCHASES_PAUSED });
     }
     if (action === 'claim') return Response.json(await runBuyback(ctx, action));
+    if (action === 'recover') return Response.json(await runBuyback(ctx, action, receiptSignature));
     if (action === 'status') await reconcileBuybackStatus(ctx);
     const totals = await buybackTotals(db, wallet.publicKey.toBase58());
     const offset = body.offset === undefined ? 0 : body.offset;
     if (!Number.isInteger(offset) || offset < 0 || offset > 100000) return Response.json({ error: 'Invalid page.' }, { status: 400 });
     const [rows, balance, latestState, pending] = await Promise.all([db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58() }, '-created_date', 20, offset), connection.getBalance(wallet.publicKey, 'confirmed'), getBuybackState(db), db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58(), status: 'pending' }, 'created_date', 1)]);
     const records = rows.map(({ signedTransaction, ...row }) => row);
+    const publicRecord = row => { if (!row) return null; const { signedTransaction, ...record } = row; return record; };
+    const [tracked] = receiptSignature ? await db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58(), signature: receiptSignature }, 'created_date', 1) : [];
     const available = BigInt(balance) - gasReserve;
     let claim = null, claimError = '';
     try { claim = await claimTools.inspect(connection, wallet.publicKey); }
     catch (error) { claimError = error.message || 'Unable to read creator reward vaults.'; }
-    return Response.json({ burnMint, solMint, wallet: wallet.publicKey.toBase58(), signerVerified: true, purchasesPaused: true,
+    return Response.json({ burnMint, solMint, wallet: wallet.publicKey.toBase58(), signerVerified: true, purchasesPaused: true, claimUiVersion: 1,
       state: { enabled: false, configuredEnabled: latestState.enabled, locked: Date.parse(latestState.lockUntil) > Date.now(), lastRunAt: latestState.lastRunAt, lastOutcome: latestState.lastOutcome, lastError: latestState.lastError },
       walletBalance: String(balance), availableSol: String(available > 0n ? available : 0n), gasReserve: String(gasReserve), minimumBuy: String(minimumBuy),
-      hasPending: pending.length > 0, totals, unclaimedSol: claim?.estimatedClaim ?? null, claim, claimError, rewards: [], records });
+      hasPending: pending.length > 0, pendingRecord: publicRecord(pending[0]), trackedRecord: publicRecord(tracked), totals, unclaimedSol: claim?.estimatedClaim ?? null, claim, claimError, rewards: [], records });
   } catch (error) {
     return Response.json({ error: error.message || 'Unable to process creator rewards.' }, { status: error.status || 500 });
   }

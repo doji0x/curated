@@ -2,11 +2,12 @@ import { Buffer } from 'node:buffer';
 import { PURCHASES_PAUSED } from './creatorClaimsCore.js';
 
 export function createClaimRunner({ getBuybackState, settleBuyback, acquireBuybackLock, releaseBuybackLock, prepareCreatorClaim }) {
-  return async function runBuyback(ctx, action = 'run') {
+  return async function runBuyback(ctx, action = 'run', signature = '') {
     const { db, wallet, connection } = ctx;
     // The old balance sweep could spend claimed rewards and retained treasury SOL.
     // Hold every purchase entry point until the per-coin allocation worker exists.
-    if (action !== 'claim') return { skipped: true, reason: PURCHASES_PAUSED };
+    if (!['claim', 'recover'].includes(action)) return { skipped: true, reason: PURCHASES_PAUSED };
+    if (action === 'recover' && !signature) throw new Error('Choose a saved claim to recover.');
     const state = await getBuybackState(db);
     const locked = await acquireBuybackLock(db);
     if (!locked) return { skipped: true, reason: 'Another worker holds the buyback lock. Please try again shortly.' };
@@ -15,6 +16,16 @@ export function createClaimRunner({ getBuybackState, settleBuyback, acquireBuyba
     try {
       if (locked.wallet && locked.wallet !== wallet.publicKey.toBase58()) throw new Error('The configured signing wallet changed. Reconcile existing buybacks before switching wallets.');
       await db.BurnBuybackState.update(state.id, { wallet: wallet.publicKey.toBase58() });
+      if (action === 'recover') {
+        const [saved] = await db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58(), signature }, 'created_date', 1);
+        if (!saved || saved.claimVersion !== 1) throw new Error('This wallet has no saved creator claim with that signature.');
+        const current = await getBuybackState(db);
+        if (current.lockToken !== token || Date.parse(current.lockUntil) <= Date.now()) throw new Error('Worker authorization changed; refresh before recovering.');
+        const result = saved.status === 'pending' ? await settleBuyback(ctx, saved, true) : saved;
+        const { signedTransaction, ...record } = result;
+        patch.lastOutcome = `Saved claim checked: ${record.status}.`;
+        return { record }; // Never fall through to preparing a new transaction.
+      }
       const pending = await db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58(), status: 'pending' }, 'created_date', 10);
       for (const row of pending) {
         const result = await settleBuyback(ctx, row, row.claimVersion === 1);

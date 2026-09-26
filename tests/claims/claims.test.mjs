@@ -199,6 +199,31 @@ test('old automatic and manual purchase routes cannot spend the wallet', async (
   for (const action of ['run', 'buy']) assert.equal((await createClaimRunner(f.deps)(f.ctx, action)).skipped, true);
   assert.deepEqual(f.events, []);
 });
+test('recovery only settles the requested saved claim and never prepares another', async () => {
+  for (const status of ['pending', 'confirmed', 'failed']) {
+    const f = runnerFixture();
+    f.ctx.db.BuybackRecord.filter = async query => {
+      assert.deepEqual(query, { wallet: CLAIM_WALLET, signature: 'saved' });
+      return [{ signature: 'saved', status, claimVersion: 1, signedTransaction: 'private bytes' }];
+    };
+    f.deps.settleBuyback = async (_, row, rebroadcast) => { assert.equal(rebroadcast, true); f.events.push('settle'); return { ...row, status: 'confirmed' }; };
+    const result = await createClaimRunner(f.deps)(f.ctx, 'recover', 'saved');
+    assert.equal(result.record.signature, 'saved'); assert.equal(result.record.signedTransaction, undefined);
+    assert.deepEqual(f.events, status === 'pending' ? ['settle', 'release'] : ['release']);
+  }
+});
+test('recovery refuses missing signatures, unknown records, historical buys and lost leases', async () => {
+  const f = runnerFixture();
+  await assert.rejects(() => createClaimRunner(f.deps)(f.ctx, 'recover'), /Choose a saved/);
+  await assert.rejects(() => createClaimRunner(f.deps)(f.ctx, 'recover', 'unknown'), /no saved creator claim/);
+  f.ctx.db.BuybackRecord.filter = async () => [{ signature: 'purchase', status: 'pending' }];
+  await assert.rejects(() => createClaimRunner(f.deps)(f.ctx, 'recover', 'purchase'), /no saved creator claim/);
+  f.ctx.db.BuybackRecord.filter = async () => [{ signature: 'saved', claimVersion: 1, status: 'pending' }];
+  const original = f.deps.getBuybackState; let reads = 0;
+  f.deps.getBuybackState = async () => ({ ...await original(), lockToken: ++reads === 1 ? 'ours' : 'different' });
+  await assert.rejects(() => createClaimRunner(f.deps)(f.ctx, 'recover', 'saved'), /authorization changed/);
+  assert.equal(f.events.some(event => ['prepare', 'send', 'persist'].includes(event)), false);
+});
 test('a saved signature is reused without creating or sending another claim', async () => {
   const f = runnerFixture();
   f.ctx.db.BuybackRecord.filter = async query => query.signature ? [{ id: 'existing', signature: 'sig', signedTransaction: 'private bytes' }] : [];

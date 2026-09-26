@@ -66,6 +66,35 @@ zero if another permissionless caller already distributed the rewards.
 
 ## Purchase protection and later phases
 
+### Admin claim controls
+
+The dashboard follows a receipt by signature across refreshes and history pages.
+Finalized and failed receipts replace the original submission message. New claims
+require a verified signer, valid nonzero reward data and a successful status read;
+a worker lock is displayed separately from a pending transaction.
+
+`action: recover` requires a saved signature belonging to the treasury and a
+`claimVersion: 1` receipt. It checks that receipt under the worker lock and may
+rebroadcast only its existing signed transaction. It never prepares a new claim
+or retries a historical purchase. Expired, failed or finalized claims are not
+resent. The UI's **Retry saved claim** button uses this action; **Refresh status**
+only reads/reconciles transaction status.
+
+Deploy the function and UI together. `claimUiVersion: 1` advertises the recovery
+and tracked-receipt response contract; the new UI disables transaction controls
+if it encounters an older backend. No private key is passed to the browser.
+
+The SDK reference for collection is the README distributed with the pinned
+`@pump-fun/pump-sdk@2.0.0` package (Creator fees and Fee Sharing sections), also
+published at https://www.npmjs.com/package/@pump-fun/pump-sdk?activeTab=readme.
+Fee-sharing coins use `getMinimumDistributableFee` and
+`buildDistributeCreatorFeesInstructions`; ordinary creator vaults use the direct
+collection path. UI retries do not build any new SDK instructions or change fee
+sharing. The platform's future 80/20 spending policy is separate from Pump's
+on-chain shareholder configuration.
+
+### Allocation worker
+
 All new automatic and manual purchases, purchase previews, and attempts to enable
 buybacks are blocked in this phase, even if an existing database record says
 `enabled: true`. The hourly workflow only reconciles pending receipts. Already
