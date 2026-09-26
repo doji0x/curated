@@ -2,6 +2,9 @@ export const burnMint = '6ZdCWrLhmBJmoLCL8reNCBxqJGBxXgQyM2PcDo4kpump';
 export const solMint = 'So11111111111111111111111111111111111111112';
 export const minimumBuy = 10_000_000n;
 export const gasReserve = 30_000_000n;
+// Keep room for Solana fees and a possible token-account creation in addition to the operating reserve.
+export const transactionAllowance = 3_000_000n;
+export const spendableBalance = balance => balance > gasReserve + transactionAllowance ? balance - gasReserve - transactionAllowance : 0n;
 export const allocation = amount => BigInt(amount) * 8000n / 10000n;
 export const stateKey = 'burn-v1';
 export async function getBuybackState(db) {

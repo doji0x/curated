@@ -44,11 +44,10 @@ export default async function(req: Request): Promise<Response> {
     if (action === 'preview') return Response.json(await prepareBuyback(ctx, totals, true));
     const offset = body.offset === undefined ? 0 : body.offset;
     if (!Number.isInteger(offset) || offset < 0 || offset > 100000) return Response.json({ error: 'Invalid page.' }, { status: 400 });
-    const [balances, rows, balance, latestState, pending] = await Promise.all([online.getCreatorVaultQuoteBalances(wallet.publicKey), db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58() }, '-created_date', 20, offset), connection.getBalance(wallet.publicKey, 'confirmed'), getBuybackState(db), db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58(), status: 'pending' }, 'created_date', 1)]);
-    const rewards = balances.map(row => ({ mint: row.mint.toBase58(), pumpVault: row.pumpVault.toString(), ammVault: row.ammVault.toString(), total: row.total.toString() }));
+    const [rows, balance, latestState, pending] = await Promise.all([db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58() }, '-created_date', 20, offset), connection.getBalance(wallet.publicKey, 'confirmed'), getBuybackState(db), db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58(), status: 'pending' }, 'created_date', 1)]);
     const records = rows.map(({ signedTransaction, ...row }) => row);
     const available = BigInt(balance) - gasReserve;
-    return Response.json({ burnMint, solMint, wallet: wallet.publicKey.toBase58(), state: { enabled: latestState.enabled, locked: Date.parse(latestState.lockUntil) > Date.now(), lastRunAt: latestState.lastRunAt, lastOutcome: latestState.lastOutcome, lastError: latestState.lastError }, walletBalance: String(balance), availableSol: String(available > 0n ? available : 0n), gasReserve: String(gasReserve), minimumBuy: String(minimumBuy), hasPending: pending.length > 0, totals, unclaimedSol: rewards.find(row => row.mint === solMint)?.total || '0', rewards, records });
+    return Response.json({ burnMint, solMint, wallet: wallet.publicKey.toBase58(), state: { enabled: latestState.enabled, locked: Date.parse(latestState.lockUntil) > Date.now(), lastRunAt: latestState.lastRunAt, lastOutcome: latestState.lastOutcome, lastError: latestState.lastError }, walletBalance: String(balance), availableSol: String(available > 0n ? available : 0n), gasReserve: String(gasReserve), minimumBuy: String(minimumBuy), hasPending: pending.length > 0, totals, unclaimedSol: String(available > 0n ? available : 0n), rewards: [], records });
   } catch (error) {
     return Response.json({ error: error.message || 'Unable to process buybacks.' }, { status: 500 });
   }

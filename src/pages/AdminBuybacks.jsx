@@ -22,7 +22,7 @@ export default function AdminBuybacks() {
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <div className="mb-7 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-display text-3xl font-bold">Creator rewards, accounted for.</h2><p className="mt-2 text-sm text-muted-foreground">80% buyback allocation · verified on-chain receipts</p></div><div className="flex gap-2"><Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}><RefreshCw className={query.isFetching ? 'animate-spin' : ''} />Refresh</Button>{query.data && <Button variant="outline" disabled={toggle.isPending} onClick={() => toggle.mutate(!query.data.state.enabled)}>{toggle.isPending && <Loader2 className="animate-spin" />}{query.data.state.enabled ? 'Pause buybacks' : 'Enable buybacks'}</Button>}</div></div>
       {error && <p role="alert" className="mb-5 rounded-xl border border-destructive/30 p-4 text-sm text-destructive">{error.response?.data?.error || error.message}</p>}
-      {query.isLoading && <p className="flex items-center gap-2 text-muted-foreground"><Loader2 className="animate-spin" size={18} />Reading reward vaults…</p>}
+      {query.isLoading && <p className="flex items-center gap-2 text-muted-foreground"><Loader2 className="animate-spin" size={18} />Reading wallet balance…</p>}
       {query.data && <><BuybackSummary data={query.data} /><ManualBuybackActions data={query.data} onSubmitted={() => setOffset(0)} /><BuybackRecords rows={query.data.records} offset={offset} onPage={setOffset} loading={query.isFetching} /></>}
     </main>
   </div>;

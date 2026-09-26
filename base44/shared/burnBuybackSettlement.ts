@@ -12,7 +12,7 @@ export async function settleBuyback(ctx, row, rebroadcast = true) {
     const keys = tx.transaction.message.accountKeys.map(item => item.pubkey.toBase58());
     const sourceIndex = keys.indexOf(row.pumpVault), walletIndex = keys.indexOf(row.wallet);
     if (walletIndex < 0 || (row.collectPump && sourceIndex < 0)) throw new Error('Finalized receipt is missing expected accounts; manual reconciliation required.');
-    const claimOnly = row.source === 'manual claim';
+    const claimOnly = row.source === 'manual claim' && BigInt(row.sweptAmount || '0') === 0n;
     const pump = row.collectPump ? BigInt(tx.meta.preBalances[sourceIndex]) - BigInt(claimOnly ? tx.meta.postBalances[sourceIndex] : row.pumpRent) : 0n;
     const ammIndex = keys.indexOf(row.ammVault);
     const preAmm = tx.meta.preTokenBalances?.find(item => item.accountIndex === ammIndex);
@@ -23,7 +23,7 @@ export async function settleBuyback(ctx, row, rebroadcast = true) {
     const coins = amounts(tx.meta.postTokenBalances) - amounts(tx.meta.preTokenBalances);
     const token = tx.meta.postTokenBalances?.find(item => item.mint === burnMint && item.owner === row.wallet);
     if (pump < 0n || amm < 0n || (claimOnly ? pump + amm <= 0n : coins <= 0n || !token)) throw new Error('Finalized receipt needs manual reconciliation; further actions are blocked.');
-    return db.BuybackRecord.update(row.id, { status: 'confirmed', totalAccrued: String(pump + amm), coinsReceived: claimOnly ? '0' : String(coins), tokenDecimals: token?.uiTokenAmount.decimals || 0, remainingBalance: String(tx.meta.postBalances[walletIndex]), networkFee: String(tx.meta.fee), confirmedAt: new Date().toISOString(), signedTransaction: '', error: '' });
+    return db.BuybackRecord.update(row.id, { status: 'confirmed', totalAccrued: row.source === 'manual claim buyback' || row.source === 'wallet reward buyback' ? '0' : String(pump + amm), coinsReceived: claimOnly ? '0' : String(coins), tokenDecimals: token?.uiTokenAmount.decimals || 0, remainingBalance: String(tx.meta.postBalances[walletIndex]), networkFee: String(tx.meta.fee), confirmedAt: new Date().toISOString(), signedTransaction: '', error: '' });
   }
   if (status) return row;
   const height = await connection.getBlockHeight('finalized');
