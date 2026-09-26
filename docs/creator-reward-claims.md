@@ -1,9 +1,11 @@
-# Creator reward claims: first phase
+# Creator reward claims
 
 The admin claim action collects SOL creator rewards into
 `3ggRizSixiDPXyHrEzBaZ3Nm8QfFRD1FbrkkYYpxMxkq`. It does not purchase or burn tokens.
 The configured target coin is
 `6ZdCWrLhmBJmoLCL8reNCBxqJGBxXgQyM2PcDo4kpump`.
+The separate [reward-funded cycle](reward-funded-cycle.md) can allocate these
+verified receipts to automatic purchases and burns after explicit activation.
 
 ## Why the previous button failed
 
@@ -32,8 +34,10 @@ ordinary creator vault. The handler rechecks on-chain state for every attempt.
   Duplicate or missing control records fail closed; they are not auto-created
   during an invocation.
 - Keep enough SOL in the treasury to pay the network fee and any temporary WSOL
-  account rent required by direct PumpSwap collection. Claims are not subject
-  to the buyback's 0.01 SOL minimum or 0.03 SOL reserve.
+  account rent required by direct PumpSwap collection. Before reward automation
+  is first activated, claims require only the actual fee. Once its accounting
+  starts, manual claims also protect all unspent/retained rewards and require a
+  separately funded 0.03 SOL operating reserve.
 
 No private key was read during development. The backend credential still needs
 to be verified in the deployed environment before a real claim.
@@ -64,7 +68,7 @@ retain their original settlement behavior. New claims remain separate from the
 legacy allocation totals. Zero-value finalized distributions can be recorded as
 zero if another permissionless caller already distributed the rewards.
 
-## Purchase protection and later phases
+## Purchase protection
 
 ### Admin claim controls
 
@@ -90,23 +94,20 @@ published at https://www.npmjs.com/package/@pump-fun/pump-sdk?activeTab=readme.
 Fee-sharing coins use `getMinimumDistributableFee` and
 `buildDistributeCreatorFeesInstructions`; ordinary creator vaults use the direct
 collection path. UI retries do not build any new SDK instructions or change fee
-sharing. The platform's future 80/20 spending policy is separate from Pump's
+sharing. The platform's 80/20 spending policy is separate from Pump's
 on-chain shareholder configuration.
 
 ### Allocation worker
 
-All new automatic and manual purchases, purchase previews, and attempts to enable
-buybacks are blocked in this phase, even if an existing database record says
-`enabled: true`. The hourly workflow only reconciles pending receipts. Already
-submitted transactions may still land; the dashboard checks them and does not
-rebroadcast historical purchase transactions. No live workflow setting is changed
-by this source-only branch.
+Direct wallet-funded purchases and purchase previews remain disabled. The
+five-minute workflow calls `runBurnRewardCycle`, which uses a new explicit
+`automationEnabled` flag, defaulting to false. The old `enabled` flag cannot
+authorize spending. Existing historical purchases are reconciled without being
+rebroadcast. Source changes alone do not activate a live worker.
 
-The later design is a per-coin ledger: 80% of each verified claim funds buying and
-burning that same coin; 20% is retained by the treasury. This change does not yet
-allocate or spend claims. Pooled creator-wallet receipts need attribution before
-any per-coin budget is created. Network-fee funding remains a separate design
-choice.
+The [cycle implementation and rollout](reward-funded-cycle.md) explain the
+receipt-only 80/20 ledger, burn recovery, operating funds and account cleanup.
+Pooled creator-wallet receipts remain ineligible for Burn purchases.
 
 ## Verification
 
@@ -132,4 +133,5 @@ not been performed.
 Before merging/deployment, review the entity schema additions alongside the
 function/shared modules and dashboard changes. After deployment, check the
 verified public wallet and claim estimate, submit a claim through the admin UI,
-and verify its finalized receipt and treasury credit before implementing buys.
+and verify its finalized receipt and treasury credit. Follow the cycle rollout
+instructions before enabling automatic purchases and burns.

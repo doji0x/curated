@@ -33,21 +33,26 @@ const { default: AdminBuybacks } = await import('../../src/pages/AdminBuybacks.j
 const flush = async () => { for (let i = 0; i < 4; i++) await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); }); };
 const text = node => typeof node === 'string' ? node : (node?.children || []).map(text).join('');
 function button(view, label) { return view.root.findAllByType('button').find(node => text(node) === label); }
-async function mount(t, { initial = null } = {}) {
+async function mount(t, { initial = null, automation = null } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } });
-  const state = { receipt: initial, claims: [], failStatus: false, failClaim: false, delayClaim: null, queries: [] };
+  const state = { receipt: initial, claims: [], failStatus: false, failClaim: false, delayClaim: null, queries: [], automation, toggles: [] };
   globalThis.claimTestApi = {
     auth: { me: async () => ({ role: 'admin' }) },
     functions: { invoke: async (_, payload) => {
       if (payload.action === 'status') {
         state.queries.push(payload);
         if (state.failStatus) throw new Error('RPC status unavailable');
-        return { data: { wallet: 'treasury', signerVerified: true, purchasesPaused: true, claimUiVersion: 1,
+        return { data: { wallet: 'treasury', signerVerified: true, purchasesPaused: true, claimUiVersion: 1, rewardCycleVersion: 1, automation: state.automation,
           claim: { wallet: 'treasury', route: 'sharing', shareBps: 10000 }, claimError: '', unclaimedSol: '5000000', walletBalance: '10000000',
           state: { locked: false }, totals: {}, hasPending: state.receipt?.status === 'pending',
           pendingRecord: state.receipt?.status === 'pending' ? state.receipt : null,
           trackedRecord: payload.signature === state.receipt?.signature ? state.receipt : null,
           records: state.receipt ? [state.receipt] : [] } };
+      }
+      if (payload.action === 'setAutomation') {
+        state.toggles.push(payload);
+        state.automation = { ...state.automation, enabled: payload.enabled };
+        return { data: { enabled: payload.enabled } };
       }
       state.claims.push(payload);
       if (state.delayClaim) await state.delayClaim;
@@ -110,4 +115,20 @@ test('a timed-out submission refreshes into the saved receipt without creating a
   assert.equal(button(view, 'Claim SOL rewards').props.disabled, true);
   assert.equal(button(view, 'Retry saved claim').props.disabled, false);
   assert.equal(state.claims.length, 1);
+});
+
+test('reward controls enable and pause without a wallet amount; failed refresh disables them', async t => {
+  const automation = { enabled: false, startedAt: null, nextRunAt: '2026-09-26T01:00:00Z',
+    claimed: '1000000000', allocated: '800000000', available: '0', spent: '800000000', retained: '200000000', rent: '0', cycles: [] };
+  const { view, state, client } = await mount(t, { automation });
+  assert.match(text(view.toJSON()), /Wallet deposits never add to this budget/);
+  await act(async () => button(view, 'Enable every 5 minutes').props.onClick()); await flush();
+  assert.deepEqual(state.toggles, [{ action: 'setAutomation', enabled: true }]);
+  assert.equal(button(view, 'Pause automation').props.disabled, false);
+  await act(async () => button(view, 'Pause automation').props.onClick()); await flush();
+  assert.deepEqual(state.toggles[1], { action: 'setAutomation', enabled: false });
+  state.failStatus = true;
+  await act(async () => { await client.invalidateQueries({ queryKey: ['burn-buybacks'] }); }); await flush();
+  assert.equal(button(view, 'Enable every 5 minutes').props.disabled, true);
+  assert.equal(state.claims.length, 0);
 });

@@ -1,8 +1,10 @@
 import { Buffer } from 'node:buffer';
 import { burnMint } from './burnBuybackConfig.ts';
 import { settleCreatorClaim } from './creatorClaims.ts';
+import { settleCycleStep } from './rewardCycleChain.ts';
 
 export async function settleBuyback(ctx, row, rebroadcast = true) {
+  if (row.cycleVersion === 1) return settleCycleStep(ctx, row, rebroadcast);
   if (row.claimVersion === 1) return settleCreatorClaim(ctx, row, rebroadcast);
   const { connection, db } = ctx;
   const status = (await connection.getSignatureStatuses([row.signature], { searchTransactionHistory: true })).value[0];

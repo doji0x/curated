@@ -234,9 +234,21 @@ test('a saved signature is reused without creating or sending another claim', as
 test('losing the lease during persistence leaves the saved transaction unsent', async () => {
   const f = runnerFixture(); let reads = 0;
   const original = f.deps.getBuybackState;
-  f.deps.getBuybackState = async () => ({ ...await original(), lockToken: ++reads >= 3 ? 'another worker' : 'ours' });
+  f.deps.getBuybackState = async () => ({ ...await original(), lockToken: ++reads >= 4 ? 'another worker' : 'ours' });
   await assert.rejects(() => createClaimRunner(f.deps)(f.ctx, 'claim'), /saved but not sent/);
   assert.deepEqual(f.events, ['prepare', 'persist', 'release']);
+});
+test('manual claims protect finalized rewards read under the worker lock', async () => {
+  const f = runnerFixture();
+  const original = f.deps.getBuybackState;
+  f.deps.getBuybackState = async () => ({ ...await original(), rewardStartedAt: '2026-09-26T00:00:00Z' });
+  f.ctx.rewardFloor = '1'; // Stale pre-lock data must not reach the builder.
+  f.ctx.db.BuybackRecord.filter = async query => query.status || query.signature ? [] : [{
+    wallet: CLAIM_WALLET, signature: 'finalized', claimVersion: 1, status: 'confirmed', createdAt: '2026-09-26T01:00:00Z',
+    claimScope: 'mint', attributedMint: CLAIM_MINT, quoteMint: 'So11111111111111111111111111111111111111112', totalAccrued: '1000000',
+  }];
+  f.deps.prepareCreatorClaim = async ctx => { assert.equal(ctx.rewardFloor, '1000000'); return { skipped: true }; };
+  await createClaimRunner(f.deps)(f.ctx, 'claim');
 });
 test('claim builder requires the actual network fee, but no buyback reserve', async () => {
   const signer = Keypair.generate(); let simulations = 0;

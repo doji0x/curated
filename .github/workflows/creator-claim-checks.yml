@@ -3,7 +3,7 @@ on:
   pull_request:
     paths: ['base44/**', 'src/components/buyback/**', 'src/pages/AdminBuybacks.jsx', 'tests/claims/**', 'package*.json', '.github/workflows/creator-claim-checks.yml']
   push:
-    branches: ['fix/creator-reward-claim', 'fix/claim-ui-states']
+    branches: ['fix/creator-reward-claim', 'fix/claim-ui-states', 'feat/reward-funded-buy-and-burn']
   workflow_dispatch:
 permissions:
   contents: read

@@ -18,6 +18,7 @@ export async function buybackTotals(db, wallet) {
   for (let skip = 0; ; skip += 100) {
     const rows = await db.BuybackRecord.filter({ wallet, status: 'confirmed' }, 'created_date', 100, skip);
     for (const row of rows) {
+      if (row.cycleVersion === 1) continue; // The reward-only ledger owns these receipts.
       if (row.claimVersion === 1) {
         const amount = BigInt(row.totalAccrued || '0');
         claimed += amount; claimFees += BigInt(row.networkFee || '0');

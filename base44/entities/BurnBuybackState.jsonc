@@ -28,6 +28,14 @@
     },
     "lastError": {
       "type": "string"
+    },
+    "automationEnabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "rewardStartedAt": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [

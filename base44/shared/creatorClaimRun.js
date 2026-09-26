@@ -1,11 +1,12 @@
 import { Buffer } from 'node:buffer';
 import { PURCHASES_PAUSED } from './creatorClaimsCore.js';
+import { allWalletRecords, rewardLedger } from './rewardCycleCore.js';
 
 export function createClaimRunner({ getBuybackState, settleBuyback, acquireBuybackLock, releaseBuybackLock, prepareCreatorClaim }) {
   return async function runBuyback(ctx, action = 'run', signature = '') {
     const { db, wallet, connection } = ctx;
     // The old balance sweep could spend claimed rewards and retained treasury SOL.
-    // Hold every purchase entry point until the per-coin allocation worker exists.
+    // Only the separate receipt-funded cycle is allowed to purchase tokens.
     if (!['claim', 'recover'].includes(action)) return { skipped: true, reason: PURCHASES_PAUSED };
     if (action === 'recover' && !signature) throw new Error('Choose a saved claim to recover.');
     const state = await getBuybackState(db);
@@ -34,7 +35,12 @@ export function createClaimRunner({ getBuybackState, settleBuyback, acquireBuyba
       // Older deployments may have more pending rows than this batch.
       const [remaining] = await db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58(), status: 'pending' }, 'created_date', 1);
       if (remaining) return { pending: true, signature: remaining.signature };
-      const prepared = await prepareCreatorClaim(ctx);
+      // Recompute after settlement and under the shared lock. A status response
+      // taken before acquiring the lock can miss another worker's new rewards.
+      const accountingState = await getBuybackState(db);
+      const claimContext = accountingState.rewardStartedAt ? { ...ctx,
+        rewardFloor: rewardLedger(await allWalletRecords(db), accountingState.rewardStartedAt).protected } : ctx;
+      const prepared = await prepareCreatorClaim(claimContext);
       if (prepared.skipped) { patch.lastOutcome = prepared.reason; return prepared; }
       const current = await getBuybackState(db);
       if (current.lockToken !== token || Date.parse(current.lockUntil) <= Date.now()) throw new Error('Worker authorization changed before submission; nothing was sent.');

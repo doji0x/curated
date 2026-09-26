@@ -4,10 +4,11 @@ import { Connection, Keypair } from 'npm:@solana/web3.js@1.98.4';
 import { OnlinePumpSdk } from 'npm:@pump-fun/pump-sdk@2.0.0';
 import { parseWallet, assertMainnet, adminWalletSecretName } from '../../shared/mintWallet.ts';
 import { burnMint, solMint, gasReserve, minimumBuy, getBuybackState, buybackTotals } from '../../shared/burnBuybackConfig.ts';
-import { reconcileBuybackStatus } from '../../shared/burnBuybackLock.ts';
+import { acquireBuybackLock, releaseBuybackLock, reconcileBuybackStatus } from '../../shared/burnBuybackLock.ts';
 import { runBuyback } from '../../shared/burnBuybackRun.ts';
 import { claimTools } from '../../shared/creatorClaims.ts';
 import { assertClaimWallet, PURCHASES_PAUSED } from '../../shared/creatorClaimsCore.js';
+import { rewardCycleStatus } from '../../shared/rewardCycle.ts';
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -19,12 +20,26 @@ export default async function(req: Request): Promise<Response> {
     if (text.length > 1000) return Response.json({ error: 'Request too large.' }, { status: 413 });
     const body = text ? JSON.parse(text) : {};
     const action = body.action || 'status';
-    if (!['status', 'run', 'preview', 'setEnabled', 'claim', 'recover', 'buy'].includes(action)) return Response.json({ error: 'Invalid action.' }, { status: 400 });
+    if (!['status', 'run', 'preview', 'setEnabled', 'setAutomation', 'claim', 'recover', 'buy'].includes(action)) return Response.json({ error: 'Invalid action.' }, { status: 400 });
     const receiptSignature = body.signature || '';
     if ((receiptSignature && (typeof receiptSignature !== 'string' || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(receiptSignature))) || (action === 'recover' && !receiptSignature)) return Response.json({ error: 'Choose a valid saved transaction signature.' }, { status: 400 });
     if (action === 'buy' || action === 'preview' || (action === 'setEnabled' && body.enabled === true)) return Response.json({ error: PURCHASES_PAUSED }, { status: 409 });
     const db = base44.asServiceRole.entities;
     const state = await getBuybackState(db);
+    if (action === 'setAutomation') {
+      if (typeof body.enabled !== 'boolean') return Response.json({ error: 'Choose enabled or paused.' }, { status: 400 });
+      // Activation is explicit. Existing wallet funds and historical receipts
+      // are never silently imported into the reward allocation ledger.
+      if (body.enabled && !state.rewardStartedAt) {
+        const locked = await acquireBuybackLock(db);
+        if (!locked) return Response.json({ error: 'Wait for the current worker before first activation.' }, { status: 409 });
+        try {
+          const current = await getBuybackState(db);
+          await db.BurnBuybackState.update(current.id, { automationEnabled: true, rewardStartedAt: current.rewardStartedAt || new Date().toISOString() });
+        } finally { await releaseBuybackLock(db, locked); }
+      } else await db.BurnBuybackState.update(state.id, { automationEnabled: body.enabled });
+      return Response.json({ enabled: body.enabled });
+    }
     if (action === 'setEnabled') {
       if (typeof body.enabled !== 'boolean') return Response.json({ error: 'Choose enabled or paused.' }, { status: 400 });
       await db.BurnBuybackState.update(state.id, { enabled: body.enabled });
@@ -55,7 +70,8 @@ export default async function(req: Request): Promise<Response> {
     let claim = null, claimError = '';
     try { claim = await claimTools.inspect(connection, wallet.publicKey); }
     catch (error) { claimError = error.message || 'Unable to read creator reward vaults.'; }
-    return Response.json({ burnMint, solMint, wallet: wallet.publicKey.toBase58(), signerVerified: true, purchasesPaused: true, claimUiVersion: 1,
+    return Response.json({ burnMint, solMint, wallet: wallet.publicKey.toBase58(), signerVerified: true, purchasesPaused: true, claimUiVersion: 1, rewardCycleVersion: 1,
+      automation: await rewardCycleStatus(db, latestState),
       state: { enabled: false, configuredEnabled: latestState.enabled, locked: Date.parse(latestState.lockUntil) > Date.now(), lastRunAt: latestState.lastRunAt, lastOutcome: latestState.lastOutcome, lastError: latestState.lastError },
       walletBalance: String(balance), availableSol: String(available > 0n ? available : 0n), gasReserve: String(gasReserve), minimumBuy: String(minimumBuy),
       hasPending: pending.length > 0, pendingRecord: publicRecord(pending[0]), trackedRecord: publicRecord(tracked), totals, unclaimedSol: claim?.estimatedClaim ?? null, claim, claimError, rewards: [], records });
