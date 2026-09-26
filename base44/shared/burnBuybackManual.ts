@@ -1,4 +1,4 @@
-import { burnMint, gasReserve, minimumBuy, spendableBalance } from './burnBuybackConfig.ts';
+import { burnMint, gasReserve, minimumBuy } from './burnBuybackConfig.ts';
 import { buildBuybackTransaction } from './burnBuybackTransaction.ts';
 import { burnTrade } from './burnBuybackTrade.ts';
 
@@ -9,8 +9,9 @@ export function validateManualAmount(value) {
   return amount;
 }
 export async function prepareManualBuyback(ctx, action, value) {
+  // Claims must use prepareCreatorClaim: never turn a claim into a purchase.
+  if (action !== 'buy') throw new Error('Use the dedicated creator-reward claim handler.');
   const balance = BigInt(await ctx.connection.getBalance(ctx.wallet.publicKey, 'confirmed'));
-  const available = spendableBalance(balance);
   const amount = validateManualAmount(value);
   if (amount > balance - gasReserve) throw new Error('This amount exceeds the wallet balance minus the 0.03 SOL operating reserve.');
   const instructions = await burnTrade(ctx, amount);

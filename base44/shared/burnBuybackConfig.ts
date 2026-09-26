@@ -14,9 +14,16 @@ export async function getBuybackState(db) {
 }
 export async function buybackTotals(db, wallet) {
   let accrued = 0n, swept = 0n, coins = 0n, fees = 0n, rewardSpent = 0n;
+  let claimed = 0n, mintClaimed = 0n, pooledClaimed = 0n, claimFees = 0n;
   for (let skip = 0; ; skip += 100) {
     const rows = await db.BuybackRecord.filter({ wallet, status: 'confirmed' }, 'created_date', 100, skip);
     for (const row of rows) {
+      if (row.claimVersion === 1) {
+        const amount = BigInt(row.totalAccrued || '0');
+        claimed += amount; claimFees += BigInt(row.networkFee || '0');
+        if (row.claimScope === 'mint') mintClaimed += amount; else pooledClaimed += amount;
+        continue; // New receipts are not spendable by the historical buyback ledger.
+      }
       accrued += BigInt(row.totalAccrued || '0');
       const spent = BigInt(row.sweptAmount || '0');
       const available = allocation(accrued) > rewardSpent ? allocation(accrued) - rewardSpent : 0n;
@@ -28,5 +35,6 @@ export async function buybackTotals(db, wallet) {
     if (rows.length < 100) break;
   }
   const allocated = allocation(accrued);
-  return { accrued: String(accrued), swept: String(swept), coins: String(coins), fees: String(fees), retained: String(accrued - allocated), carry: String(allocated > rewardSpent ? allocated - rewardSpent : 0n) };
+  return { accrued: String(accrued), swept: String(swept), coins: String(coins), fees: String(fees), retained: String(accrued - allocated), carry: String(allocated > rewardSpent ? allocated - rewardSpent : 0n),
+    claimed: String(claimed), mintClaimed: String(mintClaimed), pooledClaimed: String(pooledClaimed), claimFees: String(claimFees) };
 }

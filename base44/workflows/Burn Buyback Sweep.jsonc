@@ -35,13 +35,13 @@
           },
           "then": "end",
           "x-base44": {
-            "title": "Buy back Burn",
-            "description": "80% of verified SOL creator rewards"
+            "title": "Reconcile reward receipts",
+            "description": "Confirm saved transactions without initiating purchases."
           }
         }
       }
     ]
   },
   "name": "Burn Buyback Sweep",
-  "description": "Hourly, collects verified SOL creator rewards and allocates 80% to Burn purchases. Skips below 0.01 SOL and reconciles pending signatures before any new buy. Other quote assets remain untouched."
+  "description": "Hourly receipt reconciliation only. Purchases are disabled during the creator-reward claim rollout."
 }

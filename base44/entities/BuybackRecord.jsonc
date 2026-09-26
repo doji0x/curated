@@ -79,6 +79,42 @@
     },
     "collectAmm": {
       "type": "boolean"
+    },
+    "claimVersion": {
+      "type": "number",
+      "description": "1 identifies a verified claim-only receipt; older records retain legacy settlement."
+    },
+    "claimPlan": {
+      "type": "object",
+      "description": "Server-verified source vaults, route, recipient and attribution captured before signing."
+    },
+    "claimScope": {
+      "type": "string",
+      "description": "mint for fee-sharing distributions; creator-wallet for pooled direct collections."
+    },
+    "attributedMint": {
+      "type": "string",
+      "description": "Only populated when source fees are isolated by mint."
+    },
+    "quoteMint": {
+      "type": "string",
+      "description": "Reward asset mint; this claim action accepts SOL only."
+    },
+    "messageHash": {
+      "type": "string",
+      "description": "SHA-256 of the approved claim transaction message."
+    },
+    "rentRefund": {
+      "type": "string",
+      "description": "Existing recipient WSOL account rent returned during a direct claim; excluded from rewards."
+    },
+    "unwrappedExisting": {
+      "type": "string",
+      "description": "Existing recipient WSOL unwrapped by SDK; excluded from rewards."
+    },
+    "totalDistributed": {
+      "type": "string",
+      "description": "Actual reward vault outflow; can exceed this wallet\u2019s receipt for multiple shareholders."
     }
   },
   "required": [
