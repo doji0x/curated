@@ -81,7 +81,7 @@ export default function Home() {
     <footer className="mx-auto flex w-full max-w-2xl flex-col items-center gap-4 border-t border-border px-4 py-7 text-center text-[10px] text-muted-foreground">
       <div className="flex w-full items-center justify-between">
         <span className="flex items-center gap-2 font-display font-semibold tracking-wider text-foreground">
-          <Image src="https://media.base44.com/images/public/6aa8d3c82020abebe308c467/8d0945030_solana_pixel_avatar_under_1mb.png" alt="Curated" className="h-7 w-7 rounded-md ring-1 ring-primary/30" />CURATED
+          <Image src="https://media.base44.com/images/public/6aa8d3c82020abebe308c467/8d0945030_solana_pixel_avatar_under_1mb.png" alt="Burn" className="h-7 w-7 rounded-md ring-1 ring-primary/30" />BURN
         </span>
         <button onClick={() => setAbout(true)} className="flex items-center gap-1 hover:text-primary">Metaplex + Solana v1 + LibrePlex <ArrowUpRight size={12} /></button>
       </div>

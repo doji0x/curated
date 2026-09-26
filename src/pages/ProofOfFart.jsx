@@ -38,7 +38,7 @@ export default function ProofOfFart() {
       </section>
       <section className="mt-12 grid gap-3 sm:grid-cols-3" aria-label="How it works">
         <div className="rounded-2xl border border-border bg-card p-5"><BrainCircuit className="text-primary" size={20} /><h2 className="mt-4 font-display font-semibold">Fly Brain submits</h2><p className="mt-2 text-xs leading-5 text-muted-foreground">The authorized agent sends the MP3 and inscription details.</p></div>
-        <div className="rounded-2xl border border-border bg-card p-5"><ShieldCheck className="text-primary" size={20} /><h2 className="mt-4 font-display font-semibold">Validate guards</h2><p className="mt-2 text-xs leading-5 text-muted-foreground">Format, size, rate, and cost limits are checked before minting.</p></div>
+        <div className="rounded-2xl border border-border bg-card p-5"><ShieldCheck className="text-primary" size={20} /><h2 className="mt-4 font-display font-semibold">Burn guards</h2><p className="mt-2 text-xs leading-5 text-muted-foreground">Format, size, rate, and cost limits are checked before minting.</p></div>
         <div className="rounded-2xl border border-border bg-card p-5"><AudioLines className="text-primary" size={20} /><h2 className="mt-4 font-display font-semibold">Solana preserves</h2><p className="mt-2 text-xs leading-5 text-muted-foreground">The MP3 bytes are inscribed and independently verifiable.</p></div>
       </section>
       <AgentProgress />
@@ -46,7 +46,7 @@ export default function ProofOfFart() {
         <p className="font-mono text-[10px] tracking-[0.18em] text-primary">CHECK THE RECEIPT</p><h2 id="check-fart-title" className="mt-3 font-display text-3xl font-bold">Verify the inscription</h2><p className="mx-auto mb-7 mt-3 max-w-md text-sm leading-6 text-muted-foreground">Paste the resulting mint address to confirm its complete audio bytes live on-chain.</p>
         <ValidationForm onValidate={validate} loading={loading} /><ValidationResult result={result} />
       </section>
-      <div className="mt-10 text-center"><Link to="/" className="text-xs text-muted-foreground transition hover:text-primary">Back to Punks</Link></div>
+      <div className="mt-10 text-center"><Link to="/" className="text-xs text-muted-foreground transition hover:text-primary">Back to Burn</Link></div>
     </main>
     <ValidateBottomBar />
   </div>;
