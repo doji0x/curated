@@ -4,6 +4,7 @@ import { settleBuyback } from './burnBuybackSettlement.ts';
 import { prepareBuyback } from './burnBuybackPrepare.ts';
 import { acquireBuybackLock, releaseBuybackLock } from './burnBuybackLock.ts';
 import { prepareManualBuyback } from './burnBuybackManual.ts';
+import { prepareSolClaim } from './burnBuybackClaims.ts';
 
 export async function runBuyback(ctx, action = 'run', amount = undefined) {
   const { db, wallet, connection } = ctx;
@@ -22,7 +23,7 @@ export async function runBuyback(ctx, action = 'run', amount = undefined) {
       const result = await settleBuyback(ctx, row);
       if (result.status === 'pending') { patch.lastOutcome = 'A saved transaction is awaiting finalization; no new purchase was created.'; return { pending: true, signature: row.signature }; }
     }
-    const prepared = manual ? await prepareManualBuyback(ctx, action, amount) : await prepareBuyback(ctx, await buybackTotals(db, wallet.publicKey.toBase58()));
+    const prepared = action === 'claim' ? await prepareSolClaim(ctx) : action === 'buy' ? await prepareManualBuyback(ctx, action, amount) : await prepareBuyback(ctx, await buybackTotals(db, wallet.publicKey.toBase58()));
     if (prepared.skipped) { patch.lastOutcome = prepared.reason; return prepared; }
     const current = await getBuybackState(db);
     if ((!manual && !current.enabled) || current.lockToken !== token || Date.parse(current.lockUntil) <= Date.now()) throw new Error('Worker authorization changed before submission; nothing was sent.');

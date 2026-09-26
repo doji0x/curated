@@ -32,7 +32,7 @@ export default function ManualBuybackActions({ data, onSubmitted }) {
   return <section className="mt-5 rounded-2xl border border-border bg-card p-5">
     <h2 className="font-heading font-semibold">Manual actions</h2>
     <p className="mt-2 text-xs leading-5 text-muted-foreground">Available above reserve: <span className="font-mono text-primary">{sol(data.availableSol)} SOL</span> · Reserve: {sol(data.gasReserve)} SOL. Buys also leave room for fees and rent; they purchase Burn, not destroy tokens.</p>
-    <p className="mt-1 text-xs text-muted-foreground">Claim SOL rewards buys Burn using this wallet’s available balance, less transaction costs; it does not collect from a reward vault. Manual controls work while automation is paused.</p>
+    <p className="mt-1 text-xs text-muted-foreground">Claim SOL rewards collects available SOL from this wallet’s creator vaults into the wallet. It does not buy Burn. Manual controls work while automation is paused.</p>
     <div className="mt-4 flex flex-wrap gap-3">
       <Button variant="outline" disabled={busy} onClick={() => { setValidation(''); mutation.mutate({ action: 'claim' }); }}>{mutation.isPending && mutation.variables?.action === 'claim' && <Loader2 className="animate-spin" />}Claim SOL rewards</Button>
       <Button variant="outline" disabled={busy} onClick={() => { setOpen(!open); setValidation(''); mutation.reset(); }}>Manual buy</Button>
