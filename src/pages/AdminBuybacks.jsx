@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -10,8 +10,19 @@ import ManualBuybackActions from '@/components/buyback/ManualBuybackActions';
 
 export default function AdminBuybacks() {
   const [offset, setOffset] = useState(0);
+  const [signature, setSignature] = useState('');
   const user = useQuery({ queryKey: ['buyback-admin'], queryFn: () => base44.auth.me() });
-  const query = useQuery({ queryKey: ['burn-buybacks', offset], queryFn: async () => (await base44.functions.invoke('executeBurnBuyback', { action: 'status', offset })).data, enabled: user.data?.role === 'admin', refetchInterval: query => query.state.data?.hasPending || query.state.data?.state.locked ? 5000 : 60000, retry: false });
+  const query = useQuery({ queryKey: ['burn-buybacks', offset, signature], queryFn: async () => {
+    const data = (await base44.functions.invoke('executeBurnBuyback', { action: 'status', offset, signature })).data;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }, enabled: user.data?.role === 'admin', placeholderData: keepPreviousData,
+  refetchInterval: query => query.state.data?.hasPending || query.state.data?.trackedRecord?.status === 'pending' || query.state.data?.state?.locked ? 5000 : 60000,
+  refetchOnWindowFocus: true, retry: false });
+  // Follow the receipt across history pages and after it leaves the pending list.
+  useEffect(() => {
+    if (!query.isPlaceholderData && query.data?.pendingRecord?.signature && signature !== query.data.pendingRecord.signature) setSignature(query.data.pendingRecord.signature);
+  }, [signature, query.data?.pendingRecord?.signature, query.isPlaceholderData]);
   if (user.isLoading) return <main className="flex min-h-screen items-center justify-center"><Loader2 className="animate-spin text-primary" /></main>;
   if (user.data?.role !== 'admin') return <main className="p-10 text-center">Admin access required. <Link to="/" className="text-primary underline">Back to Burn</Link></main>;
   const error = query.error;
@@ -21,7 +32,10 @@ export default function AdminBuybacks() {
       <div className="mb-7 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-display text-3xl font-bold">Creator rewards, accounted for.</h2><p className="mt-2 text-sm text-muted-foreground">Claim creator rewards · verify every receipt</p></div><div className="flex gap-2"><Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}><RefreshCw className={query.isFetching ? 'animate-spin' : ''} />Refresh</Button></div></div>
       {error && <p role="alert" className="mb-5 rounded-xl border border-destructive/30 p-4 text-sm text-destructive">{error.response?.data?.error || error.message}</p>}
       {query.isLoading && <p className="flex items-center gap-2 text-muted-foreground"><Loader2 className="animate-spin" size={18} />Reading wallet and reward vaults…</p>}
-      {query.data && <><BuybackSummary data={query.data} /><ManualBuybackActions data={query.data} onSubmitted={() => setOffset(0)} /><BuybackRecords rows={query.data.records} offset={offset} onPage={setOffset} loading={query.isFetching} /></>}
+      {query.data && <><BuybackSummary data={query.data} /><ManualBuybackActions data={query.data} signature={signature}
+        onSubmitted={next => { setSignature(next); setOffset(0); }} onRefresh={() => query.refetch()}
+        refreshing={query.isFetching || query.isPlaceholderData} statusError={query.isError} updatedAt={query.dataUpdatedAt} />
+        <BuybackRecords rows={query.data.records} offset={offset} onPage={setOffset} loading={query.isFetching || query.isPlaceholderData} /></>}
     </main>
   </div>;
 }
