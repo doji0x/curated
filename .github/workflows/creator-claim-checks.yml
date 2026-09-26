@@ -1,0 +1,21 @@
+name: Creator reward claim checks
+on:
+  pull_request:
+    paths: ['base44/**', 'src/components/buyback/**', 'src/pages/AdminBuybacks.jsx', 'tests/claims/**', 'package*.json', '.github/workflows/creator-claim-checks.yml']
+  push:
+    branches: ['fix/creator-reward-claim']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  claims:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --import ./tests/claims/register.mjs --test tests/claims/*.test.mjs
+      - run: npm run lint
+      - run: npm run build

@@ -1,4 +1,4 @@
-import { burnMint, gasReserve, minimumBuy, spendableBalance } from './burnBuybackConfig.ts';
+import { burnMint, gasReserve, minimumBuy } from './burnBuybackConfig.ts';
 import { buildBuybackTransaction } from './burnBuybackTransaction.ts';
 import { burnTrade } from './burnBuybackTrade.ts';
 
@@ -9,12 +9,12 @@ export function validateManualAmount(value) {
   return amount;
 }
 export async function prepareManualBuyback(ctx, action, value) {
+  // Claims must use prepareCreatorClaim: never turn a claim into a purchase.
+  if (action !== 'buy') throw new Error('Use the dedicated creator-reward claim handler.');
   const balance = BigInt(await ctx.connection.getBalance(ctx.wallet.publicKey, 'confirmed'));
-  const available = spendableBalance(balance);
-  const amount = action === 'claim' ? available : validateManualAmount(value);
-  if (action === 'claim' && amount < minimumBuy) return { skipped: true, reason: 'No SOL rewards are currently available above the reserve and transaction costs.' };
+  const amount = validateManualAmount(value);
   if (action === 'buy' && amount > balance - gasReserve) throw new Error('This amount exceeds the wallet balance minus the 0.03 SOL operating reserve.');
   const instructions = await burnTrade(ctx, amount);
   const transaction = await buildBuybackTransaction(ctx, instructions, true);
-  return { source: action === 'claim' ? 'manual claim buyback' : 'manual buy', wallet: ctx.wallet.publicKey.toBase58(), buyMint: burnMint, totalAccrued: '0', sweptBps: 8000, sweptAmount: String(amount), status: 'pending', createdAt: new Date().toISOString(), ...transaction.fields };
+  return { source: 'manual buy', wallet: ctx.wallet.publicKey.toBase58(), buyMint: burnMint, totalAccrued: '0', sweptBps: 8000, sweptAmount: String(amount), status: 'pending', createdAt: new Date().toISOString(), ...transaction.fields };
 }

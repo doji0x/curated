@@ -11,6 +11,11 @@ export async function buildBuybackTransaction(ctx, actions, protectReserve = fal
   const instructions = [ComputeBudgetProgram.setComputeUnitLimit({ units: 1000000 }), ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 }), ...actions];
   const message = new TransactionMessage({ payerKey: wallet.publicKey, recentBlockhash: latest.blockhash, instructions }).compileToV0Message(table ? [table] : []);
   const tx = new VersionedTransaction(message);
+  // A claim may increase the wallet balance, but its fee payer must already be
+  // able to pay the network fee. Do not impose the buyback operating reserve.
+  const requiredFee = (await connection.getFeeForMessage(message, 'confirmed')).value;
+  const payerBalance = await connection.getBalance(wallet.publicKey, 'confirmed');
+  if (requiredFee === null || payerBalance < requiredFee) throw new Error('The treasury wallet needs SOL for the transaction fee before claiming. No transaction was sent.');
   tx.sign([wallet]);
   const raw = tx.serialize();
   if (raw.length > 1232) throw new Error('Transaction exceeds the size limit; no funds were moved.');

@@ -62,3 +62,9 @@ npm run build
 - [Solana documentation](https://solana.com/docs)
 - [Metaplex inscriptions](https://developers.metaplex.com/inscription)
 - [Base44 documentation](https://docs.base44.com)
+## Creator reward claims
+
+The admin claim action collects SOL creator rewards into the verified treasury.
+Purchases are paused during this claim-only phase; the hourly worker reconciles
+existing receipts without initiating buys. See [claim behavior, configuration,
+and validation](docs/creator-reward-claims.md).
