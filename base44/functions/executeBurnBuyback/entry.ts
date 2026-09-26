@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { secrets } from 'base44:runtime';
 import { Connection, Keypair } from 'npm:@solana/web3.js@1.98.4';
 import { OnlinePumpSdk } from 'npm:@pump-fun/pump-sdk@2.0.0';
-import { parseWallet, assertMainnet } from '../../shared/mintWallet.ts';
+import { parseWallet, assertMainnet, adminWalletSecretName } from '../../shared/mintWallet.ts';
 import { burnMint, solMint, gasReserve, minimumBuy, getBuybackState, buybackTotals } from '../../shared/burnBuybackConfig.ts';
 import { reconcileBuybackStatus } from '../../shared/burnBuybackLock.ts';
 import { validateManualAmount } from '../../shared/burnBuybackManual.ts';
@@ -33,7 +33,8 @@ export default async function(req: Request): Promise<Response> {
     }
     const rpcUrl = secrets.get('SOLANA_RPC_URL');
     await assertMainnet(rpcUrl);
-    const wallet = Keypair.fromSecretKey(parseWallet(secrets.get('MINT_WALLET_SECRET_KEY')));
+    const wallet = Keypair.fromSecretKey(parseWallet(secrets.get(adminWalletSecretName), adminWalletSecretName));
+    if (wallet.publicKey.toBase58() !== '3ggRizSixiDPXyHrEzBaZ3Nm8QfFRD1FbrkkYYpxMxkq') throw new Error('The admin signing key does not match the designated buyback wallet; no funds were moved.');
     const connection = new Connection(rpcUrl, { commitment: 'confirmed', fetch: (url, options) => fetch(url, { ...options, signal: AbortSignal.timeout(20000) }) });
     const online = new OnlinePumpSdk(connection);
     const ctx = { base44, db, rpcUrl, wallet, connection, online };
