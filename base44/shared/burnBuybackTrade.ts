@@ -17,7 +17,7 @@ function exactBudget(instructions, program, programId, originalName, exactName, 
     if (!ix.programId.equals(programId) || !Buffer.from(ix.data.subarray(0, 8)).equals(Buffer.from(original.discriminator))) continue;
     const decoded = program.coder.instruction.decode(ix.data);
     const expected = new BN(ix.data.subarray(8, 16), 'le');
-    const min = expected.muln(99).divn(100);
+    const min = expected.muln(90).divn(100);
     if (min.isZero()) throw new Error('Expected token output is too small.');
     ix.data = program.coder.instruction.encode(exact.name, { ...decoded.data, spendableQuoteIn: budget, [minimumField]: min });
     changed = true;
@@ -37,7 +37,7 @@ export async function burnTrade(ctx, lamports) {
     const state = await online.fetchBuyState(mint, user, info.owner);
     if (state.quoteMint.toBase58() !== solMint) throw new Error('Burn is not SOL-paired; quote-asset conversion is required before buying.');
     const [global, feeConfig, quoteControl] = await Promise.all([online.fetchGlobal(), online.fetchFeeConfig(), online.fetchQuoteControl()]);
-    const amount = getBuyTokenAmountFromSolAmount({ global, feeConfig, quoteControl, bondingCurve: state.bondingCurve, mintSupply: null, amount: budget, quoteMint: state.quoteMint, creatorFeeBps: state.bondingCurve.creatorFeeBps });
+    const amount = getBuyTokenAmountFromSolAmount({ global, feeConfig, quoteControl, bondingCurve: state.bondingCurve, mintSupply: state.bondingCurve.tokenTotalSupply, amount: budget, quoteMint: state.quoteMint, creatorFeeBps: state.bondingCurve.creatorFeeBps });
     const instructions = await PUMP_SDK.buyV2Instructions({ global, ...state, mint, user, amount, quoteAmount: budget, slippage: 0, tokenProgram: info.owner });
     return exactBudget(instructions, getPumpProgram(connection), PUMP_PROGRAM_ID, 'buyV2', 'buyExactQuoteInV2', budget, 'minTokensOut');
   }
