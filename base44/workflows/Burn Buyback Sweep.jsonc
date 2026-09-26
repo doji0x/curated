@@ -1,0 +1,47 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 * * * *",
+      "one_time_date": null,
+      "timezone": "America/Los_Angeles",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "burn_buyback_sweep",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sweep_rewards": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "executeBurnBuyback",
+            "args": {
+              "action": "run"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Buy back Burn",
+            "description": "80% of verified SOL creator rewards"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Burn Buyback Sweep",
+  "description": "Hourly, collects verified SOL creator rewards and allocates 80% to Burn purchases. Skips below 0.01 SOL and reconciles pending signatures before any new buy. Other quote assets remain untouched."
+}
