@@ -6,7 +6,7 @@ import { parseWallet, assertMainnet, adminWalletSecretName } from '../../shared/
 import { burnMint, solMint, gasReserve, minimumBuy, getBuybackState, buybackTotals } from '../../shared/burnBuybackConfig.ts';
 import { acquireBuybackLock, releaseBuybackLock, reconcileBuybackStatus } from '../../shared/burnBuybackLock.ts';
 import { runBuyback } from '../../shared/burnBuybackRun.ts';
-import { claimTools } from '../../shared/creatorClaims.ts';
+import { quoteSolRewards, prepareSolClaim } from '../../shared/burnBuybackClaims.ts';
 import { assertClaimWallet, PURCHASES_PAUSED } from '../../shared/creatorClaimsCore.js';
 import { rewardCycleStatus } from '../../shared/rewardCycle.ts';
 
@@ -56,6 +56,11 @@ export default async function(req: Request): Promise<Response> {
       await reconcileBuybackStatus(ctx);
       return Response.json({ skipped: true, reason: PURCHASES_PAUSED });
     }
+    if (action === 'claim' && body.dryRun === true) {
+      // Admin-only validation: simulate the exact claim without saving or broadcasting it.
+      const prepared = await prepareSolClaim(ctx);
+      return Response.json(prepared.skipped ? prepared : { dryRun: true, simulated: true, source: prepared.source, claim: prepared.claimPlan, claimVersion: prepared.claimVersion, totalAccrued: prepared.totalAccrued, sweptBps: prepared.sweptBps, sweptAmount: prepared.sweptAmount });
+    }
     if (action === 'claim') return Response.json(await runBuyback(ctx, action));
     if (action === 'recover') return Response.json(await runBuyback(ctx, action, receiptSignature));
     if (action === 'status') await reconcileBuybackStatus(ctx);
@@ -68,8 +73,8 @@ export default async function(req: Request): Promise<Response> {
     const [tracked] = receiptSignature ? await db.BuybackRecord.filter({ wallet: wallet.publicKey.toBase58(), signature: receiptSignature }, 'created_date', 1) : [];
     const available = BigInt(balance) - gasReserve;
     let claim = null, claimError = '';
-    try { claim = await claimTools.inspect(connection, wallet.publicKey); }
-    catch (error) { claimError = error.message || 'Unable to read creator reward vaults.'; }
+    try { claim = await quoteSolRewards(ctx); }
+    catch (error) { claimError = error.message || 'Unable to read the Burn fee escrow.'; }
     return Response.json({ burnMint, solMint, wallet: wallet.publicKey.toBase58(), signerVerified: true, purchasesPaused: true, claimUiVersion: 1, rewardCycleVersion: 1,
       automation: await rewardCycleStatus(db, latestState),
       state: { enabled: false, configuredEnabled: latestState.enabled, locked: Date.parse(latestState.lockUntil) > Date.now(), lastRunAt: latestState.lastRunAt, lastOutcome: latestState.lastOutcome, lastError: latestState.lastError },

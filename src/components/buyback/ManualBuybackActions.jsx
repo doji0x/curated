@@ -37,8 +37,8 @@ export default function ManualBuybackActions({ data, signature, onSubmitted, onR
   }
   return <section className="mt-5 rounded-2xl border border-border bg-card p-5" aria-labelledby="claim-heading" aria-busy={mutation.isPending}>
     <h2 id="claim-heading" className="font-heading font-semibold">Claim creator rewards</h2>
-    <p className="mt-2 text-xs leading-5 text-muted-foreground">Collect SOL creator rewards into the verified treasury wallet. This button only claims rewards. When automation is enabled, eligible claims enter the 80% buy-and-burn allocation.</p>
-    <p className="mt-3 text-sm">Available rewards: <span className="font-mono text-primary">{formatClaimSol(data.unclaimedSol)}</span> <span className="text-xs text-muted-foreground">· estimate</span></p>
+    <p className="mt-2 text-xs leading-5 text-muted-foreground">Collect native SOL from Burn’s fee escrow into the verified treasury wallet. This button only claims: collected SOL stays in the wallet, with no purchase, burn, or reward-cycle allocation.</p>
+    <p className="mt-3 text-sm">Escrow claimable: <span className="font-mono text-primary">{formatClaimSol(data.unclaimedSol)}</span> <span className="text-xs text-muted-foreground">· estimate</span></p>
     <p className="mt-2 text-xs text-muted-foreground">There is no 0.01 SOL buyback minimum for claims. Pump’s distribution minimum and network fees still apply.</p>
     <div className="mt-4 flex flex-wrap gap-3">
       <Button variant="outline" disabled={!ui.canClaim} onClick={() => submit('claim')}>{mutation.isPending && mutation.variables?.action === 'claim' && <Loader2 className="animate-spin" />}Claim SOL rewards</Button>

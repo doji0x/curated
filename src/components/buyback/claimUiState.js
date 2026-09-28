@@ -24,7 +24,7 @@ export function claimUiState({ data, result, signature = '', submitting = false,
   else if (!hasRewards) blockedReason = 'No SOL creator rewards are currently available to claim.';
 
   let phase = 'ready', message = 'Ready to claim available creator rewards.';
-  if (receipt?.status === 'confirmed') { phase = 'confirmed'; message = receipt.claimVersion === 1 ? `Claim finalized: ${formatClaimSol(receipt.totalAccrued)} received by the treasury.` : 'Saved transaction finalized. See its receipt in the history below.'; }
+  if (receipt?.status === 'confirmed') { phase = 'confirmed'; message = receipt.claimVersion === 1 ? `Claim finalized: ${formatClaimSol(receipt.claimPlan?.escrowOnly === true ? receipt.claimPlan.receivedSol || '0' : receipt.totalAccrued)} received by the treasury.` : 'Saved transaction finalized. See its receipt in the history below.'; }
   else if (receipt?.status === 'failed') { phase = 'failed'; message = receipt.error || 'The claim failed. No rewards were recorded.'; }
   else if (pending) { phase = 'pending'; message = 'Waiting for the saved transaction’s finalized receipt.'; }
   else if (result?.skipped) { phase = 'skipped'; message = result.reason; }

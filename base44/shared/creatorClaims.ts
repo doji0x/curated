@@ -10,12 +10,12 @@ export const claimTools = createClaimTools({ sdk, amm, spl, web3 });
 export async function messageHash(message) {
   return Buffer.from(await crypto.subtle.digest('SHA-256', message)).toString('hex');
 }
-export async function prepareCreatorClaim(ctx) {
-  const prepared = await claimTools.prepareInstructions(ctx.connection, ctx.online, ctx.wallet.publicKey);
+export async function prepareCreatorClaim(ctx, preparedClaim = null, source = CLAIM_SOURCE) {
+  const prepared = preparedClaim || await claimTools.prepareInstructions(ctx.connection, ctx.online, ctx.wallet.publicKey);
   if (prepared.skipped) return prepared;
   const transaction = await buildBuybackTransaction(ctx, prepared.instructions, false);
   const signed = web3.VersionedTransaction.deserialize(Buffer.from(transaction.fields.signedTransaction, 'base64'));
-  return { source: CLAIM_SOURCE, wallet: ctx.wallet.publicKey.toBase58(), buyMint: prepared.claim.coinMint,
+  return { source, wallet: ctx.wallet.publicKey.toBase58(), buyMint: prepared.claim.coinMint,
     totalAccrued: '0', sweptAmount: '0', coinsReceived: '0', sweptBps: 0, status: 'pending',
     claimVersion: 1, claimPlan: prepared.claim, claimScope: prepared.claim.claimScope, attributedMint: prepared.claim.attributedMint,
     quoteMint: prepared.claim.quoteMint, messageHash: await messageHash(signed.message.serialize()),
@@ -35,6 +35,11 @@ export async function settleCreatorClaim(ctx, row, rebroadcast = false) {
     const keys = Array.from({ length: accountKeys.length }, (_, i) => accountKeys.get(i).toBase58());
     claimAssert(keys[0] === row.wallet && row.claimPlan?.wallet === row.wallet, 'Unexpected claim fee payer or recipient.');
     const receipt = claimReceipt(tx.meta, keys, row.claimPlan);
+    if (row.claimPlan.escrowOnly === true && row.claimPlan.retainInWallet === true) {
+      // Manual escrow receipts are treasury funds, not reward-cycle allocations.
+      receipt.claimPlan = { ...row.claimPlan, receivedSol: receipt.totalAccrued };
+      receipt.totalAccrued = '0';
+    }
     return db.BuybackRecord.update(row.id, { ...receipt, status: 'confirmed', confirmedAt: new Date().toISOString(), signedTransaction: '', error: '' });
   }
   if (status) return row;

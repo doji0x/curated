@@ -7,7 +7,7 @@ import { gasReserve } from './burnBuybackConfig.ts';
 export async function buildBuybackTransaction(ctx, actions, protectReserve = false, protection = null) {
   const { connection, wallet, base44 } = ctx;
   const latest = await connection.getLatestBlockhash('confirmed');
-  const table = await readLaunchLookupTable(base44, ctx.rpcUrl, publicLaunchTableLabel);
+  const table = ctx.claimLookupTable || await readLaunchLookupTable(base44, ctx.rpcUrl, publicLaunchTableLabel);
   const instructions = [ComputeBudgetProgram.setComputeUnitLimit({ units: 1000000 }), ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 }), ...actions];
   const message = new TransactionMessage({ payerKey: wallet.publicKey, recentBlockhash: latest.blockhash, instructions }).compileToV0Message(table ? [table] : []);
   const tx = new VersionedTransaction(message);

@@ -20,7 +20,7 @@ export async function buybackTotals(db, wallet) {
     for (const row of rows) {
       if (row.cycleVersion === 1) continue; // The reward-only ledger owns these receipts.
       if (row.claimVersion === 1) {
-        const amount = BigInt(row.totalAccrued || '0');
+        const amount = BigInt(row.claimPlan?.escrowOnly === true ? row.claimPlan.receivedSol || '0' : row.totalAccrued || '0');
         claimed += amount; claimFees += BigInt(row.networkFee || '0');
         if (row.claimScope === 'mint') mintClaimed += amount; else pooledClaimed += amount;
         continue; // New receipts are not spendable by the historical buyback ledger.
