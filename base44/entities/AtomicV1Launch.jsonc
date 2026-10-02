@@ -2,50 +2,200 @@
   "name": "AtomicV1Launch",
   "type": "object",
   "properties": {
-    "requestId": { "type": "string" },
-    "coinMint": { "type": "string" },
-    "bondingCurve": { "type": "string" },
-    "name": { "type": "string" },
-    "symbol": { "type": "string" },
-    "description": { "type": "string" },
-    "imageUrl": { "type": "string" },
-    "imageMime": { "type": "string" },
-    "imageByteLength": { "type": "number" },
-    "imageSha256": { "type": "string" },
-    "metadataUri": { "type": "string" },
-    "socials": { "type": "object", "description": "Editable off-chain social links.", "properties": { "website": { "type": "string" }, "twitter": { "type": "string" }, "github": { "type": "string" } } },
-    "transactionSignature": { "type": "string" },
-    "transactionVersion": { "type": "number", "default": 1 },
-    "serializedTransactionBytes": { "type": "number" },
-    "commitment": { "type": "string", "default": "VALIDATE-v1" },
-    "atomicV1Verified": { "type": "boolean", "default": false },
-    "firstBuyAmount": { "type": "string" },
-    "status": { "type": "string", "enum": ["prepared", "submitting", "unknown", "pending", "confirmed", "failed", "incomplete", "expired"], "default": "prepared" },
-    "error": { "type": "string" },
-    "lastValidBlockHeight": { "type": "number" },
-    "checkedAt": { "type": "string", "format": "date-time" },
-    "walletAddress": { "type": "string" },
-    "walletName": { "type": "string" },
-    "messageBase64": { "type": "string" },
-    "messageHash": { "type": "string" },
-    "blockhash": { "type": "string" },
-    "submitTokenHash": { "type": "string" },
-    "signedTransactionBase64": { "type": "string" },
-    "intentHash": { "type": "string" },
-    "nativeProtocol": { "type": "number", "description": "2 marks the native wallet flow; absent on legacy records." },
-    "stateVersion": { "type": "number" },
-    "verifiedPayer": { "type": "boolean" },
-    "signingMethod": { "type": "string", "enum": ["signTransaction", "signAndSendTransaction"] },
-    "signingTransport": { "type": "string", "enum": ["wallet-standard", "phantom-request"] },
-    "metadataAuthorized": { "type": "boolean" },
-    "signerAddresses": { "type": "array", "items": { "type": "string" } },
-    "size": { "type": "object" }
+    "requestId": {
+      "type": "string"
+    },
+    "coinMint": {
+      "type": "string"
+    },
+    "bondingCurve": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "symbol": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "imageUrl": {
+      "type": "string"
+    },
+    "imageMime": {
+      "type": "string"
+    },
+    "imageByteLength": {
+      "type": "number"
+    },
+    "imageSha256": {
+      "type": "string"
+    },
+    "metadataUri": {
+      "type": "string"
+    },
+    "socials": {
+      "type": "object",
+      "description": "Editable off-chain social links.",
+      "properties": {
+        "website": {
+          "type": "string"
+        },
+        "twitter": {
+          "type": "string"
+        },
+        "github": {
+          "type": "string"
+        }
+      }
+    },
+    "transactionSignature": {
+      "type": "string"
+    },
+    "transactionVersion": {
+      "type": "number",
+      "default": 1
+    },
+    "serializedTransactionBytes": {
+      "type": "number"
+    },
+    "commitment": {
+      "type": "string",
+      "default": "VALIDATE-v1"
+    },
+    "atomicV1Verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "firstBuyAmount": {
+      "type": "string"
+    },
+    "quoteMint": {
+      "type": "string"
+    },
+    "creatorFeeBps": {
+      "type": "number"
+    },
+    "holderReward": {
+      "type": "boolean"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "prepared",
+        "submitting",
+        "unknown",
+        "pending",
+        "confirmed",
+        "failed",
+        "incomplete",
+        "expired"
+      ],
+      "default": "prepared"
+    },
+    "error": {
+      "type": "string"
+    },
+    "lastValidBlockHeight": {
+      "type": "number"
+    },
+    "checkedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "walletAddress": {
+      "type": "string"
+    },
+    "walletName": {
+      "type": "string"
+    },
+    "messageBase64": {
+      "type": "string"
+    },
+    "messageHash": {
+      "type": "string"
+    },
+    "blockhash": {
+      "type": "string"
+    },
+    "submitTokenHash": {
+      "type": "string"
+    },
+    "signedTransactionBase64": {
+      "type": "string"
+    },
+    "intentHash": {
+      "type": "string"
+    },
+    "nativeProtocol": {
+      "type": "number",
+      "description": "2 marks the native wallet flow; absent on legacy records."
+    },
+    "stateVersion": {
+      "type": "number"
+    },
+    "verifiedPayer": {
+      "type": "boolean"
+    },
+    "signingMethod": {
+      "type": "string",
+      "enum": [
+        "signTransaction",
+        "signAndSendTransaction"
+      ]
+    },
+    "signingTransport": {
+      "type": "string",
+      "enum": [
+        "wallet-standard",
+        "phantom-request"
+      ]
+    },
+    "metadataAuthorized": {
+      "type": "boolean"
+    },
+    "signerAddresses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "size": {
+      "type": "object"
+    }
   },
-  "required": ["requestId", "coinMint", "name", "symbol", "imageUrl", "imageMime", "imageByteLength", "imageSha256", "status"],
+  "required": [
+    "requestId",
+    "coinMint",
+    "name",
+    "symbol",
+    "imageUrl",
+    "imageMime",
+    "imageByteLength",
+    "imageSha256",
+    "status"
+  ],
   "rls": {
-    "read": { "user_condition": { "role": "admin" } },
-    "create": { "user_condition": { "role": "admin" } },
-    "update": { "user_condition": { "role": "admin" } },
-    "delete": { "user_condition": { "role": "admin" } }
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
   }
 }

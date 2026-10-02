@@ -5,7 +5,7 @@ import {
   addSignersToTransactionMessage, address, appendTransactionMessageInstructions,
   assertIsFullySignedTransaction, assertIsTransactionWithinSizeLimit,
   createKeyPairSignerFromBytes, createTransactionMessage, getBase64EncodedWireTransaction,
-  getTransactionSize, pipe, setTransactionMessageConfig, setTransactionMessageFeePayerSigner,
+  getTransactionSize, getSignatureFromTransaction, pipe, setTransactionMessageConfig, setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash, signTransactionMessageWithSigners
 } from 'npm:@solana/kit@8.0.0';
 
@@ -43,7 +43,7 @@ async function signedV1({ legacyInstructions, payerBytes, mintBytes, latest, min
   const requiredSignatures = wire[1];
   const signerAddresses = Array.from({ length: requiredSignatures }, (_, index) => wire.subarray(42 + index * 32, 74 + index * 32));
   if (!signerAddresses.some(bytes => bytes.equals(new PublicKey(mint).toBuffer()))) throw new Error('The Pump mint is not a required signer of the V1 transaction.');
-  return { transaction, encoded, size };
+  return { transaction, encoded, size, signature: getSignatureFromTransaction(transaction) };
 }
 
 export async function buildAtomicV1Transaction(args) {

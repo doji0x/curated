@@ -9,6 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
 import Home from '@/pages/Home';
 import AdminMint from '@/pages/AdminMint';
+import AdminV1Launch from '@/pages/AdminV1Launch';
 import AdminMints from '@/pages/AdminMints';
 import AdminAstra from '@/pages/AdminAstra';
 
@@ -77,6 +78,9 @@ const AuthenticatedApp = () => {
       </Route>
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login?returnTo=%2Fadmin%2Fastra" replace />} />}>
         <Route path="/admin/astra" element={<AdminAstra />} />
+      </Route>
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login?returnTo=%2Fadmin%2Fv1-launch" replace />} />}>
+        <Route path="/admin/v1-launch" element={<AdminV1Launch />} />
       </Route>
       <Route path="/admin/astra/jobs" element={<Navigate to="/admin/astra" replace />} />
       <Route path="/admin/astra/history" element={<Navigate to="/admin/astra" replace />} />
